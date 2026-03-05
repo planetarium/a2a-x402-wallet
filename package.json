@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "start": "pnpm --filter web start",
+    "web:dev": "pnpm --filter a2a-x402-wallet-web dev",
+    "web:build": "pnpm --filter a2a-x402-wallet-web build",
+    "web:start": "pnpm --filter a2a-x402-wallet-web start",
+    "cli:dev": "pnpm --filter a2a-x402-wallet-cli dev",
+    "cli:install": "pnpm --filter a2a-x402-wallet-cli build && npm install -g ./apps/cli",
     "lint": "pnpm -r lint"
   }
 }

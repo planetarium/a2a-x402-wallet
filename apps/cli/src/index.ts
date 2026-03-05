@@ -1,12 +1,25 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { makeAuthCommand } from './commands/auth.js';
+import { makeConfigCommand } from './commands/config.js';
+import { makeSignCommand } from './commands/sign.js';
+import { makeX402Command } from './commands/x402.js';
+import { makeWhoamiCommand } from './commands/whoami.js';
+import pkg from '../package.json' with { type: 'json' };
 
-const program = new Command();
+const program = new Command()
+  .name('a2a-wallet')
+  .description('CLI for signing x402 payment payloads via a2a-wallet')
+  .version(pkg.version);
 
-program
-  .name('a2a-x402-wallet')
-  .description('A2A x402 Wallet CLI')
-  .version('0.1.0');
+program.addCommand(makeAuthCommand());
+program.addCommand(makeConfigCommand());
+program.addCommand(makeSignCommand());
+program.addCommand(makeX402Command());
+program.addCommand(makeWhoamiCommand());
 
-program.parse();
+program.parseAsync(process.argv).catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
