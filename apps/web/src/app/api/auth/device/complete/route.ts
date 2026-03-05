@@ -1,0 +1,45 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { privy } from '@/lib/privy';
+import { signJwt } from '@/lib/jwt';
+import { deviceStore } from '@/lib/device-store';
+import type { WalletWithMetadata } from '@privy-io/server-auth';
+
+export async function POST(req: NextRequest) {
+  const { nonce, privyToken } = await req.json() as { nonce?: string; privyToken?: string };
+
+  if (!nonce || !privyToken) {
+    return NextResponse.json({ error: 'Missing nonce or privyToken' }, { status: 400 });
+  }
+
+  const entry = deviceStore.get(nonce);
+  if (!entry) {
+    return NextResponse.json({ error: 'Expired or invalid nonce' }, { status: 404 });
+  }
+
+  try {
+    const claims = await privy.verifyAuthToken(privyToken);
+    const user = await privy.getUser(claims.userId);
+
+    const embeddedWallet = user.linkedAccounts.find(
+      (a): a is WalletWithMetadata =>
+        a.type === 'wallet' &&
+        a.walletClientType === 'privy' &&
+        a.delegated === true &&
+        a.id != null,
+    );
+
+    if (!embeddedWallet?.id) {
+      return NextResponse.json({ error: 'No delegated embedded wallet found' }, { status: 400 });
+    }
+
+    const token = await signJwt(claims.userId, embeddedWallet.id);
+    const ok = deviceStore.complete(nonce, token);
+    if (!ok) {
+      return NextResponse.json({ error: 'Nonce expired during token exchange' }, { status: 404 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json({ error: `Invalid Privy token: ${error}` }, { status: 401 });
+  }
+}

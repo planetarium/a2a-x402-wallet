@@ -26,7 +26,7 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
 async function handleResponse(res: Response): Promise<unknown> {
   const data = await res.json().catch(() => ({})) as Record<string, unknown>;
   if (res.status === 401) {
-    throw new Error('Token is invalid or expired. Run "a2a-wallet auth login" or set a token directly with "a2a-wallet auth login --token <token>".');
+    throw new Error('Token is invalid or expired. Run "a2a-wallet auth login" to reauthenticate.');
   }
   if (!res.ok) {
     throw new Error(data['error'] ? String(data['error']) : `HTTP ${res.status}`);

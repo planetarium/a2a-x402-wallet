@@ -71,11 +71,9 @@ pnpm cli:uninstall
 a2a-wallet auth login
 ```
 
-Opens the wallet web app in your browser. After completing login, the token is saved automatically — no copy-paste needed.
+Starts a login session and prints a URL. If a browser is available it opens automatically; otherwise open the URL on any device (phone, laptop, etc.). The CLI polls in the background and saves the token once you complete login — no copy-paste required.
 
-If the browser does not open, a manual URL is printed to the terminal.
-
-In headless or CI environments, set the token directly without opening a browser:
+To save a token directly without opening a browser:
 
 ```bash
 a2a-wallet auth login --token <jwt>
@@ -99,7 +97,7 @@ On success, a `PaymentPayload` JSON is printed to stdout.
 ```
 a2a-wallet
 ├── auth
-│   ├── login              Log in via browser (or --token for headless)
+│   ├── login              Log in (opens browser or prints URL to visit)
 │   └── logout             Remove the saved token
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
@@ -119,9 +117,9 @@ a2a-wallet
 a2a-wallet auth login [--url <url>] [--token <token>]
 ```
 
-Opens the wallet web app in a browser and starts a local callback server. After login, the token is received automatically and saved to `~/.a2a-wallet/config.json`. Waits up to 2 minutes.
+Starts a login session on the server and prints a URL. Tries to open the URL in a browser automatically (best-effort). The CLI polls for completion in the background and saves the token once login is finished. Waits up to 2 minutes.
 
-In headless or CI environments, use `--token` to save a token directly without opening a browser.
+Works in any environment — if no browser is available (Docker, CI, remote SSH), just open the printed URL on any other device.
 
 | Option | Description |
 |--------|-------------|
@@ -266,6 +264,19 @@ The CLI is designed for programmatic use by AI Agents:
 - Errors are written to stderr
 - Exit codes: `0` success, `1` failure
 - Inject the token via `A2A_WALLET_TOKEN` to avoid persistent config
+
+**Initial setup (one-time)**
+
+```bash
+a2a-wallet auth login
+# → Opening browser for login...
+# → If the browser did not open, visit:
+# →   https://a2a-x402-wallet-web.fly.dev/device-login?nonce=...
+# → Waiting for authentication...
+# → Token saved. You are now logged in.
+```
+
+Once logged in, copy the token from `~/.a2a-wallet/config.json` and set it in the agent's environment as `A2A_WALLET_TOKEN`.
 
 **Invocation example**
 
