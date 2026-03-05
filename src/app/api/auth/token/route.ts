@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const token = await signJwt(claims.userId, embeddedWallet.id);
     return NextResponse.json({ token });
-  } catch {
-    return NextResponse.json({ error: 'Invalid Privy token' }, { status: 401 });
+  } catch (error) {
+    return NextResponse.json({ error: `Invalid Privy token: ${error}` }, { status: 401 });
   }
 }
