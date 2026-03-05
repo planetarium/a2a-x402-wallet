@@ -41,6 +41,36 @@ npm install -g ./apps/cli
 a2a-wallet --version
 ```
 
+## Uninstallation
+
+### If installed via install script (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/uninstall.sh | sh
+```
+
+Or manually:
+
+```bash
+sudo rm $(which a2a-wallet)
+```
+
+### If built from source
+
+```bash
+npm uninstall -g a2a-x402-wallet-cli
+```
+
+Or from the monorepo root:
+
+```bash
+pnpm cli:uninstall
+```
+
+### Windows
+
+Delete the `a2a-wallet.exe` file from the folder where you placed it during installation.
+
 ## Quick Start
 
 ### 1. Set your token
