@@ -7,11 +7,12 @@ export function makeWhoamiCommand(): Command {
     .description('Show authenticated user info from the configured token')
     .option('--token <jwt>', 'JWT for this request only (overrides config)')
     .option('--url <url>', 'Web app URL for this request only (overrides config)')
-    .action(async (opts: { token?: string; url?: string }) => {
+    .option('--json', 'Output pure JSON to stdout')
+    .action(async (opts: { token?: string; url?: string; json?: boolean }) => {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
       if (!cfg.token) {
-        console.error('Error: No token configured. Run: a2a-wallet config set token <your-jwt>');
+        console.error('Error: Not logged in.\n  Run: a2a-wallet auth login\n   Or: a2a-wallet auth login --token <token>');
         process.exit(1);
       }
 
@@ -23,8 +24,12 @@ export function makeWhoamiCommand(): Command {
         const wallet = user.linkedAccounts?.find(
           (a) => (a.type === 'wallet' || a.type === 'ethereum_wallet') && a.address,
         );
-        console.log(`User ID: ${user.id}`);
-        console.log(`Wallet:  ${wallet?.address ?? '(none)'}`);
+        if (opts.json) {
+          process.stdout.write(JSON.stringify({ id: user.id, wallet: wallet?.address ?? null }));
+        } else {
+          console.log(`User ID: ${user.id}`);
+          console.log(`Wallet:  ${wallet?.address ?? '(none)'}`);
+        }
       } catch (err) {
         console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);

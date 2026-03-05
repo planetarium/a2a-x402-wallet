@@ -22,9 +22,17 @@ export function makeAuthCommand(): Command {
 
   cmd
     .command('login')
-    .description('Open the wallet web app in a browser to log in and get a token')
+    .description('Log in to the wallet. Use --token to set a token directly in headless environments.')
     .option('--url <url>', 'Web app URL to open (overrides config)')
-    .action(async (opts: { url?: string }) => {
+    .option('--token <token>', 'Save a token directly without opening a browser')
+    .action(async (opts: { url?: string; token?: string }) => {
+      if (opts.token) {
+        const existing = readConfig();
+        writeConfig({ ...existing, token: opts.token });
+        console.log('Token saved. You are now logged in.');
+        return;
+      }
+
       const cfg = getEffectiveConfig({ url: opts.url });
       const baseUrl = cfg.url;
 
@@ -44,6 +52,7 @@ export function makeAuthCommand(): Command {
       openBrowser(loginUrl);
       console.log(`Waiting for authentication (up to 2 minutes)...`);
       console.log(`If the browser did not open, visit:\n  ${loginUrl}`);
+      console.log(`In headless environments, copy the token from the web app and run:\n  a2a-wallet auth login --token <token>`);
 
       const token = await new Promise<string>((resolve, reject) => {
         const timer = setTimeout(() => {
