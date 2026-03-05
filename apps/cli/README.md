@@ -1,14 +1,12 @@
 # a2a-wallet CLI
 
-A CLI tool for requesting x402 payment signing using a web app accessToken (JWT).
-
-The primary purpose is to allow AI Agents to call this CLI as a Tool when x402 payment is required, automatically generating a signed `PaymentPayload`.
+CLI tool for signing x402 payment payloads via the a2a-wallet web app. Designed to be called by AI Agents as a tool when x402 payment authorization is required.
 
 ## Installation
 
-### Option 1: Install script (macOS / Linux)
+### Binary (macOS / Linux)
 
-No Node.js required. Downloads a prebuilt binary from the latest GitHub release.
+No Node.js required.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh
@@ -16,26 +14,26 @@ curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/sc
 
 Supported platforms: macOS (Apple Silicon, Intel), Linux (x64, arm64).
 
-For Windows, download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/planetarium/a2a-x402-wallet/releases/latest) page, rename it to `a2a-wallet.exe`, and place it in a folder of your choice (e.g. `C:\Users\<you>\bin`).
+### Binary (Windows)
 
-Then add that folder to your PATH:
+Download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/planetarium/a2a-x402-wallet/releases/latest) page, rename it to `a2a-wallet.exe`, and place it in a folder on your PATH.
 
-1. Open **Start** → search **"Environment Variables"** → click **"Edit the system environment variables"**
-2. Click **Environment Variables...** → under **User variables**, select **Path** → click **Edit**
-3. Click **New** and enter the folder path (e.g. `C:\Users\<you>\bin`)
-4. Click OK on all dialogs, then restart your terminal
+To add a folder to PATH:
 
-### Option 2: Build from source (requires Node.js >= 22)
+1. Open **Start** → search **"Environment Variables"** → **"Edit the system environment variables"**
+2. Click **Environment Variables...** → select **Path** under User variables → **Edit**
+3. Click **New**, enter the folder path, then click OK on all dialogs and restart your terminal
+
+### Build from source (requires Node.js >= 22)
 
 ```bash
 # From the monorepo root
 pnpm install
 pnpm --filter a2a-x402-wallet-cli build
-
 npm install -g ./apps/cli
 ```
 
-### Verify installation
+### Verify
 
 ```bash
 a2a-wallet --version
@@ -43,48 +41,50 @@ a2a-wallet --version
 
 ## Uninstallation
 
-### If installed via install script (macOS / Linux)
+**macOS / Linux (install script)**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/uninstall.sh | sh
 ```
 
-Or manually:
+**macOS / Linux (manual)**
 
 ```bash
 sudo rm $(which a2a-wallet)
 ```
 
-### If built from source
+**Built from source**
 
 ```bash
 npm uninstall -g a2a-x402-wallet-cli
-```
-
-Or from the monorepo root:
-
-```bash
+# or from the monorepo root:
 pnpm cli:uninstall
 ```
 
-### Windows
-
-Delete the `a2a-wallet.exe` file from the folder where you placed it during installation.
+**Windows** — delete `a2a-wallet.exe` from the folder where you placed it.
 
 ## Quick Start
 
-### 1. Set your token
-
-Save the accessToken issued after logging in at the web app.
+### 1. Log in
 
 ```bash
-a2a-wallet config set token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+a2a-wallet auth login
 ```
 
-### 2. Request a signature
+Opens the wallet web app in your browser. After completing login, the token is saved automatically — no copy-paste needed.
+
+If the browser does not open, a manual URL is printed to the terminal.
+
+Alternatively, set the token directly:
 
 ```bash
-a2a-wallet sign \
+a2a-wallet config set token <jwt>
+```
+
+### 2. Sign an x402 payment
+
+```bash
+a2a-wallet x402 sign \
   --scheme exact \
   --network base \
   --asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bda02913 \
@@ -94,37 +94,85 @@ a2a-wallet sign \
 
 On success, a `PaymentPayload` JSON is printed to stdout.
 
-## Commands
+## Command Overview
 
-### `config`
-
-Manages configuration values. Settings are stored in `~/.a2a-wallet/config.json`.
-
-#### `config set <key> <value>`
-
-```bash
-a2a-wallet config set token <jwt>    # Set accessToken
-a2a-wallet config set url <url>      # Set web app URL (default: https://wallet.a2a-x402.xyz)
+```
+a2a-wallet
+├── auth
+│   ├── login              Open browser to log in and save token automatically
+│   └── logout             Remove the saved token
+├── config
+│   ├── set <key> <value>  Set a config value (token, url)
+│   └── get [key]          Show config values
+├── sign                   Sign an arbitrary message with your wallet
+├── x402
+│   └── sign               Sign x402 PaymentRequirements → PaymentPayload
+├── whoami                 Show authenticated user info
+└── update                 Update a2a-wallet to the latest version
 ```
 
-#### `config get [key]`
+## Commands
+
+### `auth login`
+
+```bash
+a2a-wallet auth login [--url <url>]
+```
+
+Opens the wallet web app in a browser and starts a local callback server. After login, the token is received automatically and saved to `~/.a2a-wallet/config.json`. Waits up to 2 minutes.
+
+| Option | Description |
+|--------|-------------|
+| `--url <url>` | Override the web app URL for this request |
+
+### `auth logout`
+
+```bash
+a2a-wallet auth logout
+```
+
+Removes the saved token from the config file.
+
+### `config set`
+
+```bash
+a2a-wallet config set token <jwt>   # Set accessToken
+a2a-wallet config set url <url>     # Set web app URL (default: https://wallet.a2a-x402.xyz)
+```
+
+Settings are stored in `~/.a2a-wallet/config.json`.
+
+### `config get`
 
 ```bash
 a2a-wallet config get          # Show all settings (token is masked)
 a2a-wallet config get url      # Show a specific value
 ```
 
----
-
 ### `sign`
+
+Signs an arbitrary message with your wallet.
+
+```bash
+a2a-wallet sign --message <string> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--message <string>` | Message to sign (required) |
+| `--token <jwt>` | One-time token for this request only |
+| `--url <url>` | Web app URL for this request only |
+| `--json` | Output pure JSON to stdout |
+
+### `x402 sign`
 
 Signs x402 `PaymentRequirements` and returns a `PaymentPayload`.
 
-```
-a2a-wallet sign [options]
+```bash
+a2a-wallet x402 sign [options]
 ```
 
-**Required options**
+**Required**
 
 | Option | Description |
 |--------|-------------|
@@ -132,16 +180,16 @@ a2a-wallet sign [options]
 | `--network <network>` | Blockchain network |
 | `--asset <address>` | ERC-20 token contract address |
 | `--pay-to <address>` | Merchant wallet address |
-| `--amount <value>` | Max payment amount in token's smallest unit (string) |
+| `--amount <value>` | Max payment amount in token's smallest unit |
 
-**Optional options**
+**Optional**
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--valid-for <seconds>` | `3600` | Signature validity duration in seconds |
-| `--token <jwt>` | config token | One-time token for this request only |
-| `--url <url>` | config url | Web app URL for this request only |
-| `--json` | — | Force pure JSON output (recommended for Agent use) |
+| `--token <jwt>` | config | One-time token for this request only |
+| `--url <url>` | config | Web app URL for this request only |
+| `--json` | — | Output pure JSON to stdout (recommended for Agent use) |
 
 **Output example**
 
@@ -164,21 +212,25 @@ a2a-wallet sign [options]
 }
 ```
 
----
-
 ### `whoami`
 
-Displays the authenticated user's information for the current token.
+Shows the authenticated user's ID and linked wallet address.
 
 ```bash
-a2a-wallet whoami
+a2a-wallet whoami [--token <jwt>] [--url <url>]
 ```
 
----
+### `update`
 
-## Configuration Priority
+Updates the binary to the latest version from GitHub Releases. Only works for binary installations; for source installs, reinstall manually.
 
-`CLI option` > `Environment variable` > `Config file` > `Default`
+```bash
+a2a-wallet update
+```
+
+## Configuration
+
+**Priority:** `CLI option` > `Environment variable` > `Config file` > `Default`
 
 **Environment variables**
 
@@ -187,21 +239,29 @@ a2a-wallet whoami
 | `A2A_WALLET_TOKEN` | accessToken |
 | `A2A_WALLET_URL` | Web app base URL |
 
----
+## Supported Networks
+
+| Network | Chain ID |
+|---------|----------|
+| `base` | 8453 |
+| `base-sepolia` | 84532 |
+| `ethereum` | 1 |
+| `optimism` | 10 |
+| `arbitrum` | 42161 |
 
 ## Using as an Agent Tool
 
-The CLI is designed for programmatic use by AI Agents.
+The CLI is designed for programmatic use by AI Agents:
 
-- `--json` flag: prints only pure JSON to stdout
-- Errors go to stderr
-- Exit codes: success `0`, failure `1`
-- Token can be injected via the `A2A_WALLET_TOKEN` environment variable
+- Use `--json` to get pure JSON on stdout
+- Errors are written to stderr
+- Exit codes: `0` success, `1` failure
+- Inject the token via `A2A_WALLET_TOKEN` to avoid persistent config
 
-**Agent invocation example**
+**Invocation example**
 
 ```bash
-A2A_WALLET_TOKEN=<jwt> a2a-wallet sign \
+A2A_WALLET_TOKEN=<jwt> a2a-wallet x402 sign \
   --scheme exact \
   --network base \
   --asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bda02913 \
@@ -231,29 +291,10 @@ A2A_WALLET_TOKEN=<jwt> a2a-wallet sign \
 }
 ```
 
----
-
-## Supported Networks
-
-| Network | Chain ID |
-|---------|----------|
-| `base` | 8453 |
-| `base-sepolia` | 84532 |
-| `ethereum` | 1 |
-| `optimism` | 10 |
-| `arbitrum` | 42161 |
-
----
-
 ## Development
 
 ```bash
-# Development mode (watch)
-pnpm dev
-
-# Build
-pnpm build
-
-# Type check
-pnpm lint
+pnpm dev    # Watch mode
+pnpm build  # Build
+pnpm lint   # Type check
 ```
