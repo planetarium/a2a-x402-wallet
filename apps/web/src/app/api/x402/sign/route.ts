@@ -10,7 +10,7 @@ import {
   type PaymentPayload,
   type PaymentRequirements,
   type TransferWithAuthorizationPayload,
-} from '@/lib/x402';
+} from '@a2a-x402-wallet/x402';
 
 /**
  * POST /api/x402/sign

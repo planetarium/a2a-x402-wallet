@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ['@a2a-x402-wallet/x402'],
 };
 
 export default nextConfig;
