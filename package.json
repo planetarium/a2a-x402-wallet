@@ -8,6 +8,7 @@
     "web:start": "pnpm --filter a2a-x402-wallet-web start",
     "cli:dev": "pnpm --filter a2a-x402-wallet-cli dev",
     "cli:install": "pnpm --filter a2a-x402-wallet-cli build && npm install -g ./apps/cli",
+    "web:deploy": "fly deploy --config apps/web/fly.toml",
     "lint": "pnpm -r lint"
   }
 }

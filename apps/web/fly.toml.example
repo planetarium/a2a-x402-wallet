@@ -1,0 +1,30 @@
+# fly.toml app configuration file generated for a2a-x402-wallet-web on 2026-03-05T18:04:45+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'a2a-x402-wallet-web'
+primary_region = 'nrt'
+
+[build]
+  dockerfile = './Dockerfile'
+
+  [build.args]
+    NEXT_PUBLIC_PRIVY_APP_ID = ''
+    NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_ID = ''
+
+[env]
+  PORT = '3000'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '512mb'
+  cpus = 1
+  memory_mb = 512

@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 const CONFIG_DIR = join(homedir(), '.a2a-wallet');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
-export const DEFAULT_URL = 'https://a2a-x402-wallet.fly.dev';
+export const DEFAULT_URL = 'https://a2a-x402-wallet-web.fly.dev';
 
 export interface Config {
   url?: string;
