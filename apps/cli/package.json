@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "build:binary": "bun build src/index.ts --compile --outfile dist/a2a-wallet",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit"
   },

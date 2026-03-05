@@ -6,7 +6,26 @@ The primary purpose is to allow AI Agents to call this CLI as a Tool when x402 p
 
 ## Installation
 
-### Build and install globally
+### Option 1: Install script (macOS / Linux)
+
+No Node.js required. Downloads a prebuilt binary from the latest GitHub release.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh
+```
+
+Supported platforms: macOS (Apple Silicon, Intel), Linux (x64, arm64).
+
+For Windows, download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/planetarium/a2a-x402-wallet/releases/latest) page, rename it to `a2a-wallet.exe`, and place it in a folder of your choice (e.g. `C:\Users\<you>\bin`).
+
+Then add that folder to your PATH:
+
+1. Open **Start** → search **"Environment Variables"** → click **"Edit the system environment variables"**
+2. Click **Environment Variables...** → under **User variables**, select **Path** → click **Edit**
+3. Click **New** and enter the folder path (e.g. `C:\Users\<you>\bin`)
+4. Click OK on all dialogs, then restart your terminal
+
+### Option 2: Build from source (requires Node.js >= 22)
 
 ```bash
 # From the monorepo root
