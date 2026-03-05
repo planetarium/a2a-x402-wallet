@@ -12,6 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           accentColor: '#676FFF',
         },
         loginMethods: ['email'],
+        embeddedWallets: {
+          ethereum: { createOnLogin: 'users-without-wallets' },
+        },
       }}
     >
       {children}

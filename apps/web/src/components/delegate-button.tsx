@@ -17,11 +17,7 @@ export function DelegateButton() {
   if (!embeddedWallet) return null;
 
   if (embeddedWallet.delegated) {
-    return (
-      <p className="text-xs text-green-600 dark:text-green-400">
-        Wallet delegated ✓
-      </p>
-    );
+    return null;
   }
 
   async function handleAddSigner() {
@@ -35,9 +31,9 @@ export function DelegateButton() {
   return (
     <button
       onClick={handleAddSigner}
-      className="h-10 w-48 rounded-full border border-black/10 px-5 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+      className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
     >
-      Delegate to backend
+      Delegate wallet to backend
     </button>
   );
 }
