@@ -75,10 +75,10 @@ Opens the wallet web app in your browser. After completing login, the token is s
 
 If the browser does not open, a manual URL is printed to the terminal.
 
-Alternatively, set the token directly:
+In headless or CI environments, set the token directly without opening a browser:
 
 ```bash
-a2a-wallet config set token <jwt>
+a2a-wallet auth login --token <jwt>
 ```
 
 ### 2. Sign an x402 payment
@@ -99,7 +99,7 @@ On success, a `PaymentPayload` JSON is printed to stdout.
 ```
 a2a-wallet
 ├── auth
-│   ├── login              Open browser to log in and save token automatically
+│   ├── login              Log in via browser (or --token for headless)
 │   └── logout             Remove the saved token
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
@@ -116,14 +116,17 @@ a2a-wallet
 ### `auth login`
 
 ```bash
-a2a-wallet auth login [--url <url>]
+a2a-wallet auth login [--url <url>] [--token <token>]
 ```
 
 Opens the wallet web app in a browser and starts a local callback server. After login, the token is received automatically and saved to `~/.a2a-wallet/config.json`. Waits up to 2 minutes.
 
+In headless or CI environments, use `--token` to save a token directly without opening a browser.
+
 | Option | Description |
 |--------|-------------|
 | `--url <url>` | Override the web app URL for this request |
+| `--token <token>` | Save a token directly without opening a browser |
 
 ### `auth logout`
 
@@ -217,8 +220,14 @@ a2a-wallet x402 sign [options]
 Shows the authenticated user's ID and linked wallet address.
 
 ```bash
-a2a-wallet whoami [--token <jwt>] [--url <url>]
+a2a-wallet whoami [--token <jwt>] [--url <url>] [--json]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--token <jwt>` | One-time token for this request only |
+| `--url <url>` | Web app URL for this request only |
+| `--json` | Output pure JSON to stdout |
 
 ### `update`
 

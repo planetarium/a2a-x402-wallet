@@ -31,7 +31,7 @@ export function makeX402Command(): Command {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
       if (!cfg.token) {
-        console.error('Error: No token configured. Run: a2a-wallet config set token <your-jwt>');
+        console.error('Error: Not logged in.\n  Run: a2a-wallet auth login\n   Or: a2a-wallet auth login --token <token>');
         process.exit(1);
       }
 
