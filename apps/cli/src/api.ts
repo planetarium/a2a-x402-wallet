@@ -33,6 +33,11 @@ async function handleResponse(res: Response): Promise<unknown> {
       '  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)'
     );
   }
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After');
+    const hint = retryAfter ? ` Try again in ${retryAfter}s.` : ' Try again later.';
+    throw new Error(`Too many requests.${hint}`);
+  }
   if (!res.ok) {
     throw new Error(data['error'] ? String(data['error']) : `HTTP ${res.status}`);
   }

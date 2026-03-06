@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deviceStore } from '@/lib/device-store';
+import { pollLimiter, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
+  const { allowed, resetAt } = pollLimiter.check(getClientIp(req));
+  if (!allowed) return tooManyRequests(resetAt);
+
   const nonce = req.nextUrl.searchParams.get('nonce');
   if (!nonce) {
     return NextResponse.json({ error: 'Missing nonce' }, { status: 400 });

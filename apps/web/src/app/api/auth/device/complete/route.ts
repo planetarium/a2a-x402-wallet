@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { privy } from '@/lib/privy';
 import { signJwt } from '@/lib/jwt';
 import { deviceStore } from '@/lib/device-store';
+import { completeLimiter, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import type { WalletWithMetadata } from '@privy-io/server-auth';
 
 export async function POST(req: NextRequest) {
+  const { allowed, resetAt } = completeLimiter.check(getClientIp(req));
+  if (!allowed) return tooManyRequests(resetAt);
+
   // Restrict to same-origin requests only — prevents a malicious third party
   // from completing a device session on behalf of an unsuspecting user.
   const origin = req.headers.get('origin');

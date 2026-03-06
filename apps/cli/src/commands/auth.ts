@@ -110,8 +110,14 @@ export function makeAuthCommand(): Command {
 
       const startRes = await fetch(`${baseUrl}/api/auth/device/start`, { method: 'POST' })
         .catch(() => null);
-      if (!startRes?.ok) {
-        console.error('Error: Could not reach the server to start login.');
+      if (!startRes) {
+        console.error('Error: Could not reach the server. Check your network or --url.');
+        process.exit(1);
+      }
+      if (!startRes.ok) {
+        const body = await startRes.json().catch(() => ({})) as { error?: string };
+        const msg = body.error ?? `HTTP ${startRes.status}`;
+        console.error(`Error: ${startRes.status} ${msg}`);
         process.exit(1);
       }
       const { nonce, loginUrl } = await startRes.json() as { nonce: string; loginUrl: string };
@@ -145,9 +151,22 @@ export function makeAuthCommand(): Command {
 
         if (!pollRes) continue;
 
-        if (pollRes.status === 404) {
-          console.error('Error: Login session expired or not found.');
-          process.exit(1);
+        if (!pollRes.ok) {
+          const body = await pollRes.json().catch(() => ({})) as { error?: string };
+          const msg = body.error ?? `HTTP ${pollRes.status}`;
+
+          if (pollRes.status === 404) {
+            console.error(`Error: ${pollRes.status} ${msg}`);
+            process.exit(1);
+          }
+          if (pollRes.status === 429) {
+            const retryAfter = Number(pollRes.headers.get('Retry-After') ?? POLL_INTERVAL_MS / 1000);
+            console.error(`${pollRes.status} ${msg}. Retrying in ${retryAfter}s...`);
+            await new Promise((r) => setTimeout(r, retryAfter * 1000));
+            continue;
+          }
+          console.error(`Warning: ${pollRes.status} ${msg}. Retrying...`);
+          continue;
         }
 
         const data = await pollRes.json() as { status: string; token?: string };
