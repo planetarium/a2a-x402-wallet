@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-const expirationTime = process.env.JWT_EXPIRATION_TIME || '3650d';
+const expirationTime = process.env.JWT_EXPIRATION_TIME || '5m';
 
 export async function signJwt(userId: string, walletId: string): Promise<string> {
   return new SignJWT({ sub: userId, walletId })

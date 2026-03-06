@@ -67,15 +67,31 @@ pnpm cli:uninstall
 
 ### 1. Log in
 
+**Human / interactive:**
+
 ```bash
 a2a-wallet auth login
 ```
 
-Opens the wallet web app in your browser. After completing login, the token is saved automatically — no copy-paste needed.
+Starts a local callback server. Opens the login page in your browser and saves the token automatically when you complete login.
 
-If the browser does not open, a manual URL is printed to the terminal.
+**Agent / headless (two steps):**
 
-In headless or CI environments, set the token directly without opening a browser:
+```bash
+# Step 1: start a session and get the login URL
+a2a-wallet auth device start --json
+# → {"nonce":"abc123","loginUrl":"https://..."}
+
+# Step 2: show the URL to the user, then poll for completion
+a2a-wallet auth device poll --nonce abc123
+# → Waiting for authentication (up to 2 minutes)...
+# → Token saved. You are now logged in.
+# → This token is valid for 5 more minutes.
+```
+
+This lets the agent relay the login URL to the user *before* blocking on the poll.
+
+**Direct token injection (CI / scripted environments):**
 
 ```bash
 a2a-wallet auth login --token <jwt>
@@ -99,7 +115,10 @@ On success, a `PaymentPayload` JSON is printed to stdout.
 ```
 a2a-wallet
 ├── auth
-│   ├── login              Log in via browser (or --token for headless)
+│   ├── login              Log in via browser callback (humans)
+│   ├── device
+│   │   ├── start          Start device session and print login URL (agent step 1)
+│   │   └── poll           Poll for login completion and save token (agent step 2)
 │   └── logout             Remove the saved token
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
@@ -116,17 +135,44 @@ a2a-wallet
 ### `auth login`
 
 ```bash
-a2a-wallet auth login [--url <url>] [--token <token>]
+a2a-wallet auth login [--url <url>]   # human / interactive
+a2a-wallet auth login --token <jwt>   # direct token injection
 ```
 
-Opens the wallet web app in a browser and starts a local callback server. After login, the token is received automatically and saved to `~/.a2a-wallet/config.json`. Waits up to 2 minutes.
+Starts a local callback server and opens the login page in your browser. The token is saved automatically when login completes. Recommended for interactive use.
 
-In headless or CI environments, use `--token` to save a token directly without opening a browser.
+**`--token`** — Saves a token directly without opening a browser. Useful for scripted or CI environments.
 
 | Option | Description |
 |--------|-------------|
 | `--url <url>` | Override the web app URL for this request |
 | `--token <token>` | Save a token directly without opening a browser |
+
+### `auth device start`
+
+```bash
+a2a-wallet auth device start [--url <url>] [--json]
+```
+
+Starts a device login session on the server and prints the login URL, then exits immediately. Use this as **step 1** of the agent login flow so the agent can relay the URL to the user before blocking.
+
+| Option | Description |
+|--------|-------------|
+| `--url <url>` | Override the web app URL for this request |
+| `--json` | Output `{"nonce":"…","loginUrl":"…"}` to stdout |
+
+### `auth device poll`
+
+```bash
+a2a-wallet auth device poll --nonce <nonce> [--url <url>]
+```
+
+Polls the server for login completion. Saves the token once the user completes login. Use this as **step 2** of the agent login flow after showing the URL to the user.
+
+| Option | Description |
+|--------|-------------|
+| `--nonce <nonce>` | Nonce returned by `auth device start` (required) |
+| `--url <url>` | Override the web app URL for this request |
 
 ### `auth logout`
 
@@ -266,6 +312,25 @@ The CLI is designed for programmatic use by AI Agents:
 - Errors are written to stderr
 - Exit codes: `0` success, `1` failure
 - Inject the token via `A2A_WALLET_TOKEN` to avoid persistent config
+- If the token is expired, the CLI detects it locally before making any network request and exits with an error pointing to the login commands
+
+**Initial setup (one-time)**
+
+Use the two-step device flow for agent setup — no local server required:
+
+```bash
+# Step 1: get the login URL and show it to the user
+a2a-wallet auth device start --json
+# → {"nonce":"abc123","loginUrl":"https://...device-login?nonce=abc123"}
+
+# Step 2: once the user has been notified, start polling
+a2a-wallet auth device poll --nonce abc123
+# → Waiting for authentication (up to 2 minutes)...
+# → Token saved. You are now logged in.
+# → This token is valid for 5 more minutes.
+```
+
+Once logged in, copy the token from `~/.a2a-wallet/config.json` and set it in the agent's environment as `A2A_WALLET_TOKEN`.
 
 **Invocation example**
 

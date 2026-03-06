@@ -1,3 +1,23 @@
+const LOGIN_HINT =
+  'Please log in again:\n' +
+  '  a2a-wallet auth login                  (interactive / human)\n' +
+  '  a2a-wallet auth device start           (agent / headless — step 1)\n' +
+  '  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)';
+
+function assertTokenNotExpired(token: string): void {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64url').toString('utf8')
+    ) as { exp?: number };
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      throw new Error(`Your token has expired.\n${LOGIN_HINT}`);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('Your token')) throw err;
+    // malformed JWT — let the server reject it
+  }
+}
+
 export interface X402SignRequestBody {
   paymentRequirements: {
     scheme: string;
@@ -26,7 +46,12 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
 async function handleResponse(res: Response): Promise<unknown> {
   const data = await res.json().catch(() => ({})) as Record<string, unknown>;
   if (res.status === 401) {
-    throw new Error('Token is invalid or expired. Run "a2a-wallet auth login" or set a token directly with "a2a-wallet auth login --token <token>".');
+    throw new Error(`Token is invalid or expired.\n${LOGIN_HINT}`);
+  }
+  if (res.status === 429) {
+    const retryAfter = res.headers.get('Retry-After');
+    const hint = retryAfter ? ` Try again in ${retryAfter}s.` : ' Try again later.';
+    throw new Error(`Too many requests.${hint}`);
   }
   if (!res.ok) {
     throw new Error(data['error'] ? String(data['error']) : `HTTP ${res.status}`);
@@ -42,6 +67,7 @@ function wrapFetchError(err: unknown): never {
 }
 
 export async function callSign(baseUrl: string, token: string, message: string): Promise<unknown> {
+  assertTokenNotExpired(token);
   const res = await fetchWithTimeout(`${baseUrl}/api/sign`, {
     method: 'POST',
     headers: {
@@ -54,6 +80,7 @@ export async function callSign(baseUrl: string, token: string, message: string):
 }
 
 export async function callX402Sign(baseUrl: string, token: string, body: X402SignRequestBody): Promise<unknown> {
+  assertTokenNotExpired(token);
   const res = await fetchWithTimeout(`${baseUrl}/api/x402/sign`, {
     method: 'POST',
     headers: {
@@ -66,6 +93,7 @@ export async function callX402Sign(baseUrl: string, token: string, body: X402Sig
 }
 
 export async function callWhoami(baseUrl: string, token: string): Promise<unknown> {
+  assertTokenNotExpired(token);
   const res = await fetchWithTimeout(`${baseUrl}/api/me`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });

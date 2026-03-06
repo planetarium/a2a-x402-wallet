@@ -12,7 +12,10 @@ export function makeWhoamiCommand(): Command {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
       if (!cfg.token) {
-        console.error('Error: Not logged in.\n  Run: a2a-wallet auth login\n   Or: a2a-wallet auth login --token <token>');
+        console.error('Error: Not logged in. Run:');
+        console.error('  a2a-wallet auth login                  (interactive / human)');
+        console.error('  a2a-wallet auth device start           (agent / headless — step 1)');
+        console.error('  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)');
         process.exit(1);
       }
 
@@ -25,7 +28,7 @@ export function makeWhoamiCommand(): Command {
           (a) => (a.type === 'wallet' || a.type === 'ethereum_wallet') && a.address,
         );
         if (opts.json) {
-          process.stdout.write(JSON.stringify({ id: user.id, wallet: wallet?.address ?? null }));
+          console.log(JSON.stringify({ id: user.id, wallet: wallet?.address ?? null }));
         } else {
           console.log(`User ID: ${user.id}`);
           console.log(`Wallet:  ${wallet?.address ?? '(none)'}`);
