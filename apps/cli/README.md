@@ -67,13 +67,30 @@ pnpm cli:uninstall
 
 ### 1. Log in
 
+**Human / interactive:**
+
 ```bash
 a2a-wallet auth login
 ```
 
-Starts a login session and prints a URL. If a browser is available it opens automatically; otherwise open the URL on any device (phone, laptop, etc.). The CLI polls in the background and saves the token once you complete login — no copy-paste required.
+Starts a local callback server. Opens the login page in your browser and saves the token automatically when you complete login.
 
-To save a token directly without opening a browser:
+**Agent / headless (two steps):**
+
+```bash
+# Step 1: start a session and get the login URL
+a2a-wallet auth device start --json
+# → {"nonce":"abc123","loginUrl":"https://..."}
+
+# Step 2: show the URL to the user, then poll for completion
+a2a-wallet auth device poll --nonce abc123
+# → Waiting for authentication (up to 2 minutes)...
+# → Token saved. You are now logged in.
+```
+
+This lets the agent relay the login URL to the user *before* blocking on the poll.
+
+**Direct token injection (CI / scripted environments):**
 
 ```bash
 a2a-wallet auth login --token <jwt>
@@ -97,7 +114,10 @@ On success, a `PaymentPayload` JSON is printed to stdout.
 ```
 a2a-wallet
 ├── auth
-│   ├── login              Log in (opens browser or prints URL to visit)
+│   ├── login              Log in via browser callback (humans)
+│   ├── device
+│   │   ├── start          Start device session and print login URL (agent step 1)
+│   │   └── poll           Poll for login completion and save token (agent step 2)
 │   └── logout             Remove the saved token
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
@@ -114,17 +134,44 @@ a2a-wallet
 ### `auth login`
 
 ```bash
-a2a-wallet auth login [--url <url>] [--token <token>]
+a2a-wallet auth login [--url <url>]   # human / interactive
+a2a-wallet auth login --token <jwt>   # direct token injection
 ```
 
-Starts a login session on the server and prints a URL. Tries to open the URL in a browser automatically (best-effort). The CLI polls for completion in the background and saves the token once login is finished. Waits up to 2 minutes.
+Starts a local callback server and opens the login page in your browser. The token is saved automatically when login completes. Recommended for interactive use.
 
-Works in any environment — if no browser is available (Docker, CI, remote SSH), just open the printed URL on any other device.
+**`--token`** — Saves a token directly without opening a browser. Useful for scripted or CI environments.
 
 | Option | Description |
 |--------|-------------|
 | `--url <url>` | Override the web app URL for this request |
 | `--token <token>` | Save a token directly without opening a browser |
+
+### `auth device start`
+
+```bash
+a2a-wallet auth device start [--url <url>] [--json]
+```
+
+Starts a device login session on the server and prints the login URL, then exits immediately. Use this as **step 1** of the agent login flow so the agent can relay the URL to the user before blocking.
+
+| Option | Description |
+|--------|-------------|
+| `--url <url>` | Override the web app URL for this request |
+| `--json` | Output `{"nonce":"…","loginUrl":"…"}` to stdout |
+
+### `auth device poll`
+
+```bash
+a2a-wallet auth device poll --nonce <nonce> [--url <url>]
+```
+
+Polls the server for login completion. Saves the token once the user completes login. Use this as **step 2** of the agent login flow after showing the URL to the user.
+
+| Option | Description |
+|--------|-------------|
+| `--nonce <nonce>` | Nonce returned by `auth device start` (required) |
+| `--url <url>` | Override the web app URL for this request |
 
 ### `auth logout`
 
@@ -267,12 +314,16 @@ The CLI is designed for programmatic use by AI Agents:
 
 **Initial setup (one-time)**
 
+Use the two-step device flow for agent setup — no local server required:
+
 ```bash
-a2a-wallet auth login
-# → Opening browser for login...
-# → If the browser did not open, visit:
-# →   https://a2a-x402-wallet-web.fly.dev/device-login?nonce=...
-# → Waiting for authentication...
+# Step 1: get the login URL and show it to the user
+a2a-wallet auth device start --json
+# → {"nonce":"abc123","loginUrl":"https://...device-login?nonce=abc123"}
+
+# Step 2: once the user has been notified, start polling
+a2a-wallet auth device poll --nonce abc123
+# → Waiting for authentication (up to 2 minutes)...
 # → Token saved. You are now logged in.
 ```
 

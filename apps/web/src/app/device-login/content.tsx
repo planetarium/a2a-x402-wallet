@@ -72,6 +72,7 @@ export function DeviceLoginContent() {
   const [creatingWallet, setCreatingWallet] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const didFinish = useRef(false);
 
   const embeddedWallet = user?.linkedAccounts.find(
@@ -272,13 +273,44 @@ export function DeviceLoginContent() {
                     </svg>
                   )}
                 </div>
-                <div>
+                <div className="w-full">
                   {error ? (
                     <p className="text-sm text-red-500">{error}</p>
                   ) : (
                     <>
                       <p className="font-medium text-sm">{done ? 'Authorized.' : 'Authorizing CLI...'}</p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">You can close this tab.</p>
+                      {done && nonce && (
+                        <div className="mt-4 text-left">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-1.5">
+                            If your agent is waiting, paste this command to complete login:
+                          </p>
+                          <div className="flex items-stretch gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2">
+                            <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all">
+                              a2a-wallet auth device poll --nonce {nonce}
+                            </code>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`a2a-wallet auth device poll --nonce ${nonce}`);
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              }}
+                              className="shrink-0 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors pl-2"
+                              aria-label="Copy command"
+                            >
+                              {copied ? (
+                                <svg className="h-4 w-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              ) : (
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

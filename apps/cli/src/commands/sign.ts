@@ -18,7 +18,10 @@ export function makeSignCommand(): Command {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
       if (!cfg.token) {
-        console.error('Error: Not logged in. Run: a2a-wallet auth login');
+        console.error('Error: Not logged in. Run:');
+        console.error('  a2a-wallet auth login                  (interactive / human)');
+        console.error('  a2a-wallet auth device start           (agent / headless — step 1)');
+        console.error('  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)');
         process.exit(1);
       }
 
