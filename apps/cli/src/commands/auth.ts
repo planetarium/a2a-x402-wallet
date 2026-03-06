@@ -3,6 +3,31 @@ import { spawn } from 'child_process';
 import { createServer } from 'http';
 import { getEffectiveConfig, readConfig, writeConfig } from '../config.js';
 
+function logTokenSaved(token: string): void {
+  console.log('Token saved. You are now logged in.');
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as { exp?: number };
+    if (payload.exp) {
+      const expiresAt = new Date(payload.exp * 1000);
+      const diffMs = expiresAt.getTime() - Date.now();
+      const diffMin = Math.round(diffMs / 60_000);
+      const diffHours = Math.round(diffMs / 3_600_000);
+      const diffDays = Math.round(diffMs / 86_400_000);
+      if (diffMs <= 0) {
+        console.log('Warning: This token has already expired.');
+      } else if (diffMin < 60) {
+        console.log(`This token is valid for ${diffMin} more minute${diffMin !== 1 ? 's' : ''}.`);
+      } else if (diffHours < 48) {
+        console.log(`This token is valid for ${diffHours} more hour${diffHours !== 1 ? 's' : ''}.`);
+      } else {
+        console.log(`This token is valid for ${diffDays} more day${diffDays !== 1 ? 's' : ''}.`);
+      }
+    }
+  } catch {
+    // If JWT is malformed, skip expiry info
+  }
+}
+
 function tryOpenBrowser(url: string): void {
   const [bin, args]: [string, string[]] =
     process.platform === 'darwin' ? ['open', [url]] :
@@ -30,7 +55,7 @@ export function makeAuthCommand(): Command {
       if (opts.token) {
         const existing = readConfig();
         writeConfig({ ...existing, token: opts.token });
-        console.log('Token saved. You are now logged in.');
+        logTokenSaved(opts.token);
         return;
       }
 
@@ -93,7 +118,7 @@ export function makeAuthCommand(): Command {
 
       const existing = readConfig();
       writeConfig({ ...existing, token });
-      console.log('Token saved. You are now logged in.');
+      logTokenSaved(token);
       process.exit(0);
     });
 
@@ -180,7 +205,7 @@ export function makeAuthCommand(): Command {
         if (data.status === 'complete' && data.token) {
           const existing = readConfig();
           writeConfig({ ...existing, token: data.token });
-          console.log('Token saved. You are now logged in.');
+          logTokenSaved(data.token);
           return;
         }
 

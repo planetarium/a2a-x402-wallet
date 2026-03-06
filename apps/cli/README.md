@@ -86,6 +86,7 @@ a2a-wallet auth device start --json
 a2a-wallet auth device poll --nonce abc123
 # → Waiting for authentication (up to 2 minutes)...
 # → Token saved. You are now logged in.
+# → This token is valid for 5 more minutes.
 ```
 
 This lets the agent relay the login URL to the user *before* blocking on the poll.
@@ -311,6 +312,7 @@ The CLI is designed for programmatic use by AI Agents:
 - Errors are written to stderr
 - Exit codes: `0` success, `1` failure
 - Inject the token via `A2A_WALLET_TOKEN` to avoid persistent config
+- If the token is expired, the CLI detects it locally before making any network request and exits with an error pointing to the login commands
 
 **Initial setup (one-time)**
 
@@ -325,6 +327,7 @@ a2a-wallet auth device start --json
 a2a-wallet auth device poll --nonce abc123
 # → Waiting for authentication (up to 2 minutes)...
 # → Token saved. You are now logged in.
+# → This token is valid for 5 more minutes.
 ```
 
 Once logged in, copy the token from `~/.a2a-wallet/config.json` and set it in the agent's environment as `A2A_WALLET_TOKEN`.
