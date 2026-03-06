@@ -145,12 +145,13 @@ export function makeAuthCommand(): Command {
         console.error(`Error: ${startRes.status} ${msg}`);
         process.exit(1);
       }
-      const body = await startRes.json().catch(() => null) as { nonce: string; loginUrl: string } | null;
-      if (!body?.nonce || !body?.loginUrl) {
+      const body = await startRes.json().catch(() => null) as { nonce: string } | null;
+      if (!body?.nonce) {
         console.error('Error: Invalid response from server.');
         process.exit(1);
       }
-      const { nonce, loginUrl } = body;
+      const { nonce } = body;
+      const loginUrl = `${baseUrl}/device-login?nonce=${encodeURIComponent(nonce)}`;
 
       if (opts.json) {
         console.log(JSON.stringify({ nonce, loginUrl }));
