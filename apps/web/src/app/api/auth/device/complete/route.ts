@@ -5,6 +5,14 @@ import { deviceStore } from '@/lib/device-store';
 import type { WalletWithMetadata } from '@privy-io/server-auth';
 
 export async function POST(req: NextRequest) {
+  // Restrict to same-origin requests only — prevents a malicious third party
+  // from completing a device session on behalf of an unsuspecting user.
+  const origin = req.headers.get('origin');
+  const expectedOrigin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  if (!origin || origin !== expectedOrigin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { nonce, privyToken } = await req.json() as { nonce?: string; privyToken?: string };
 
   if (!nonce || !privyToken) {

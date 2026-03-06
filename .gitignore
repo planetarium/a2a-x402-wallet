@@ -12,6 +12,7 @@
 
 # temp
 /temp
+/.temp
 
 # testing
 /coverage

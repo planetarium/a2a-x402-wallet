@@ -15,7 +15,77 @@ Users log in via the web, delegate their wallet to the backend, and receive an a
 
 ## API
 
-All endpoints require an `Authorization: Bearer <token>` header.
+All endpoints require an `Authorization: Bearer <token>` header unless stated otherwise.
+
+### Device Flow (agent / headless login)
+
+A two-step flow that lets an agent obtain a token without a local callback server.
+Implemented as a simplified [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628) Device Authorization Grant using a UUID nonce.
+
+```
+1. CLI calls POST /api/auth/device/start  →  receives { nonce, loginUrl }
+2. Agent relays loginUrl to the user
+3. User opens loginUrl in a browser, signs in, and delegates their wallet
+4. Browser calls POST /api/auth/device/complete (same-origin only) to exchange the Privy token
+5. CLI polls GET /api/auth/device/poll?nonce=… until status === "complete"
+6. CLI saves the returned token
+```
+
+#### `POST /api/auth/device/start`
+
+Creates a device login session and returns a login URL. No authentication required.
+
+**Request**: no body
+
+**Response**:
+```json
+{ "nonce": "uuid-v4", "loginUrl": "https://…/device-login?nonce=uuid-v4" }
+```
+
+---
+
+#### `GET /api/auth/device/poll?nonce=<nonce>`
+
+Polls for login completion. No authentication required.
+
+**Response (pending)**:
+```json
+{ "status": "pending" }
+```
+
+**Response (complete)**:
+```json
+{ "status": "complete", "token": "eyJhbGci…" }
+```
+
+**Errors**:
+- `400` — Missing `nonce` query parameter
+- `404` — Nonce expired or not found
+
+---
+
+#### `POST /api/auth/device/complete`
+
+Completes the device session by exchanging a Privy token for an accessToken.
+**Same-origin requests only** — the `Origin` header must match the server's own host (CSRF protection).
+
+**Request body**:
+```json
+{ "nonce": "uuid-v4", "privyToken": "<privy-access-token>" }
+```
+
+**Response**:
+```json
+{ "ok": true }
+```
+
+**Errors**:
+- `400` — Missing `nonce` or `privyToken`, or no delegated embedded wallet
+- `401` — Invalid Privy token
+- `403` — Request origin does not match server origin
+- `404` — Nonce expired or not found
+
+---
 
 ### `POST /api/auth/token`
 
@@ -130,6 +200,7 @@ cp .env.example .env
 | `PRIVY_AUTHORIZATION_PRIVATE_KEY` | Private key for delegation signing |
 | `JWT_SECRET` | Secret for signing accessTokens |
 | `JWT_EXPIRATION_TIME` | accessToken expiry (default: `3650d`) |
+| `NEXT_PUBLIC_APP_URL` | Public URL of this app, used to build device-login URLs (required in production) |
 
 ### 3. Run development server
 
