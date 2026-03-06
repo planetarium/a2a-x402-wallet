@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { getEffectiveConfig } from '../config.js';
-import { callX402Sign } from '../api.js';
+import { callX402Sign, exitNotLoggedIn } from '../api.js';
 
 export function makeX402Command(): Command {
   const cmd = new Command('x402').description('x402 payment protocol commands');
@@ -30,13 +30,7 @@ export function makeX402Command(): Command {
     }) => {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
-      if (!cfg.token) {
-        console.error('Error: Not logged in. Run:');
-        console.error('  a2a-wallet auth login                  (interactive / human)');
-        console.error('  a2a-wallet auth device start           (agent / headless — step 1)');
-        console.error('  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)');
-        process.exit(1);
-      }
+      if (!cfg.token) exitNotLoggedIn();
 
       const validForSeconds = parseInt(opts.validFor, 10);
       if (isNaN(validForSeconds) || validForSeconds <= 0) {

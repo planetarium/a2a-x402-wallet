@@ -1,8 +1,13 @@
 const LOGIN_HINT =
-  'Please log in again:\n' +
-  '  a2a-wallet auth login                  (interactive / human)\n' +
-  '  a2a-wallet auth device start           (agent / headless — step 1)\n' +
-  '  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)';
+  'Run `a2a-wallet auth device start` to begin a new login session.\n' +
+  'It will print a login URL — share it with the user so they can authenticate.\n' +
+  'Once the user has logged in, run `a2a-wallet auth device poll --nonce <nonce>` to save the token.';
+
+export function exitNotLoggedIn(): never {
+  console.error('Error: Not logged in.');
+  console.error(LOGIN_HINT);
+  process.exit(1);
+}
 
 function assertTokenNotExpired(token: string): void {
   try {

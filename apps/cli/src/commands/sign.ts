@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { getEffectiveConfig } from '../config.js';
-import { callSign } from '../api.js';
+import { callSign, exitNotLoggedIn } from '../api.js';
 
 export function makeSignCommand(): Command {
   return new Command('sign')
@@ -17,13 +17,7 @@ export function makeSignCommand(): Command {
     }) => {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
-      if (!cfg.token) {
-        console.error('Error: Not logged in. Run:');
-        console.error('  a2a-wallet auth login                  (interactive / human)');
-        console.error('  a2a-wallet auth device start           (agent / headless — step 1)');
-        console.error('  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)');
-        process.exit(1);
-      }
+      if (!cfg.token) exitNotLoggedIn();
 
       try {
         const result = await callSign(cfg.url, cfg.token, opts.message);
