@@ -28,7 +28,7 @@ export function makeWhoamiCommand(): Command {
           (a) => (a.type === 'wallet' || a.type === 'ethereum_wallet') && a.address,
         );
         if (opts.json) {
-          process.stdout.write(JSON.stringify({ id: user.id, wallet: wallet?.address ?? null }));
+          console.log(JSON.stringify({ id: user.id, wallet: wallet?.address ?? null }));
         } else {
           console.log(`User ID: ${user.id}`);
           console.log(`Wallet:  ${wallet?.address ?? '(none)'}`);

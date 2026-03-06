@@ -120,10 +120,15 @@ export function makeAuthCommand(): Command {
         console.error(`Error: ${startRes.status} ${msg}`);
         process.exit(1);
       }
-      const { nonce, loginUrl } = await startRes.json() as { nonce: string; loginUrl: string };
+      const body = await startRes.json().catch(() => null) as { nonce: string; loginUrl: string } | null;
+      if (!body?.nonce || !body?.loginUrl) {
+        console.error('Error: Invalid response from server.');
+        process.exit(1);
+      }
+      const { nonce, loginUrl } = body;
 
       if (opts.json) {
-        process.stdout.write(JSON.stringify({ nonce, loginUrl }));
+        console.log(JSON.stringify({ nonce, loginUrl }));
       } else {
         console.log(`Visit the following URL to log in:\n\n  ${loginUrl}\n`);
         console.log(`Then run:\n\n  a2a-wallet auth device poll --nonce ${nonce}\n`);
@@ -144,12 +149,13 @@ export function makeAuthCommand(): Command {
       const deadline = Date.now() + TIMEOUT_MS;
 
       while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-
         const pollRes = await fetch(`${baseUrl}/api/auth/device/poll?nonce=${encodeURIComponent(opts.nonce)}`)
           .catch(() => null);
 
-        if (!pollRes) continue;
+        if (!pollRes) {
+          await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+          continue;
+        }
 
         if (!pollRes.ok) {
           const body = await pollRes.json().catch(() => ({})) as { error?: string };
@@ -177,6 +183,8 @@ export function makeAuthCommand(): Command {
           console.log('Token saved. You are now logged in.');
           return;
         }
+
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       }
 
       console.error('Error: Login timed out after 2 minutes.');

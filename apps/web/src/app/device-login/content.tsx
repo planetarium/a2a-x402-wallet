@@ -101,6 +101,7 @@ export function DeviceLoginContent() {
       if (!res.ok) {
         const { error: msg } = await res.json().catch(() => ({})) as { error?: string };
         setError(msg ?? 'Authorization failed.');
+        didFinish.current = false;
         return;
       }
       setDone(true);
@@ -109,9 +110,15 @@ export function DeviceLoginContent() {
 
   async function handleDelegate() {
     if (!embeddedWallet) return;
+    if (!SIGNER_ID) {
+      setError('Configuration error: NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_ID is not set');
+      return;
+    }
     setDelegating(true);
     try {
       await addSigners({ address: embeddedWallet.address, signers: [{ signerId: SIGNER_ID }] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Delegation failed.');
     } finally {
       setDelegating(false);
     }
@@ -261,15 +268,19 @@ export function DeviceLoginContent() {
               <div className="flex flex-col items-center gap-3 py-2 text-center">
                 <div className={[
                   'h-10 w-10 rounded-full flex items-center justify-center',
-                  error ? 'bg-red-50 dark:bg-red-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30',
+                  error ? 'bg-red-50 dark:bg-red-900/30' : done ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-zinc-100 dark:bg-zinc-800',
                 ].join(' ')}>
                   {error ? (
                     <svg className="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
-                  ) : (
+                  ) : done ? (
                     <svg className="h-5 w-5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5 text-zinc-400 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M12 2a10 10 0 1 0 10 10" strokeLinecap="round" />
                     </svg>
                   )}
                 </div>

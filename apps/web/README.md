@@ -59,7 +59,7 @@ Polls for login completion. No authentication required.
 ```
 
 **Errors**:
-- `400` — Missing `nonce` query parameter
+- `400` — Missing or invalid `nonce` query parameter (must be a UUID v4)
 - `404` — Nonce expired or not found
 
 ---

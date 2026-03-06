@@ -57,7 +57,7 @@ export function makeX402Command(): Command {
         });
 
         if (opts.json) {
-          process.stdout.write(JSON.stringify(result));
+          console.log(JSON.stringify(result));
         } else {
           console.log(JSON.stringify(result, null, 2));
         }

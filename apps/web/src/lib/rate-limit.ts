@@ -1,4 +1,4 @@
-// In-memory sliding-window rate limiter.
+// In-memory fixed-window rate limiter.
 // Single-instance only — same caveat as device-store: replace with a
 // Redis/Upstash-backed implementation for horizontally-scaled deployments.
 

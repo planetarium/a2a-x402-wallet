@@ -5,7 +5,7 @@
 
 export interface DeviceEntry {
   token?: string;
-  exp: number; // Unix timestamp ms
+  expiresAt: number; // Unix timestamp (ms)
 }
 
 export interface DeviceStore {
@@ -23,19 +23,19 @@ class MemoryDeviceStore implements DeviceStore {
     setInterval(() => {
       const now = Date.now();
       for (const [key, val] of this.map) {
-        if (val.exp < now) this.map.delete(key);
+        if (val.expiresAt < now) this.map.delete(key);
       }
     }, 60_000).unref();
   }
 
   create(nonce: string, ttlMs: number): void {
-    this.map.set(nonce, { exp: Date.now() + ttlMs });
+    this.map.set(nonce, { expiresAt: Date.now() + ttlMs });
   }
 
   get(nonce: string): DeviceEntry | undefined {
     const entry = this.map.get(nonce);
     if (!entry) return undefined;
-    if (entry.exp < Date.now()) {
+    if (entry.expiresAt < Date.now()) {
       this.map.delete(nonce);
       return undefined;
     }

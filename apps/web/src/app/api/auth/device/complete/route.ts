@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   // Restrict to same-origin requests only — prevents a malicious third party
   // from completing a device session on behalf of an unsuspecting user.
   const origin = req.headers.get('origin');
-  const expectedOrigin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  const expectedOrigin = process.env.NEXT_PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
   if (!origin || origin !== expectedOrigin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const embeddedWallet = user.linkedAccounts.find(
       (a): a is WalletWithMetadata =>
         a.type === 'wallet' &&
-        a.walletClientType === 'privy' &&
+        (a.walletClientType === 'privy' || a.walletClientType === 'privy-v2') &&
         a.delegated === true &&
         a.id != null,
     );
@@ -52,6 +52,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return NextResponse.json({ error: `Invalid Privy token: ${error}` }, { status: 401 });
+    return NextResponse.json({ error: 'Invalid Privy token' }, { status: 401 });
   }
 }

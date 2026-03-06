@@ -29,7 +29,7 @@ export function makeSignCommand(): Command {
         const result = await callSign(cfg.url, cfg.token, opts.message);
 
         if (opts.json) {
-          process.stdout.write(JSON.stringify(result));
+          console.log(JSON.stringify(result));
         } else {
           console.log(JSON.stringify(result, null, 2));
         }
