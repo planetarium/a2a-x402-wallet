@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
   // Restrict to same-origin requests only — prevents a malicious third party
   // from completing a device session on behalf of an unsuspecting user.
   const origin = req.headers.get('origin');
-  const expectedOrigin = process.env.NEXT_PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  const proto = req.headers.get('x-forwarded-proto') ?? req.nextUrl.protocol.replace(/:$/, '');
+  const host = req.headers.get('x-forwarded-host') ?? req.nextUrl.host;
+  const expectedOrigin = `${proto}://${host}`;
   if (!origin || origin !== expectedOrigin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
