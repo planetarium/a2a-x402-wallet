@@ -199,7 +199,7 @@ cp .env.example .env
 | `NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_ID` | Privy delegation signing key ID (client-side) |
 | `PRIVY_AUTHORIZATION_PRIVATE_KEY` | Private key for delegation signing |
 | `JWT_SECRET` | Secret for signing accessTokens |
-| `JWT_EXPIRATION_TIME` | accessToken expiry (default: `3650d`) |
+| `JWT_EXPIRATION_TIME` | accessToken expiry (default: `5m`) |
 | `NEXT_PUBLIC_APP_URL` | Public URL of this app, used to build device-login URLs (required in production) |
 
 ### 3. Run development server
