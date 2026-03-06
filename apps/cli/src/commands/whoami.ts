@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { getEffectiveConfig } from '../config.js';
-import { callWhoami } from '../api.js';
+import { callWhoami, exitNotLoggedIn } from '../api.js';
 
 export function makeWhoamiCommand(): Command {
   return new Command('whoami')
@@ -11,13 +11,7 @@ export function makeWhoamiCommand(): Command {
     .action(async (opts: { token?: string; url?: string; json?: boolean }) => {
       const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
 
-      if (!cfg.token) {
-        console.error('Error: Not logged in. Run:');
-        console.error('  a2a-wallet auth login                  (interactive / human)');
-        console.error('  a2a-wallet auth device start           (agent / headless — step 1)');
-        console.error('  a2a-wallet auth device poll --nonce …  (agent / headless — step 2)');
-        process.exit(1);
-      }
+      if (!cfg.token) exitNotLoggedIn();
 
       try {
         const data = await callWhoami(cfg.url, cfg.token) as {
