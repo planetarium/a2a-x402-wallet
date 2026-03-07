@@ -7,6 +7,7 @@ import { makeSignCommand } from './commands/sign.js';
 import { makeX402Command } from './commands/x402.js';
 import { makeWhoamiCommand } from './commands/whoami.js';
 import { makeUpdateCommand } from './commands/update.js';
+import { makeA2ACommand } from './commands/a2a.js';
 import { makeSiweCommand } from './commands/siwe/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -21,6 +22,7 @@ program.addCommand(makeSignCommand());
 program.addCommand(makeX402Command());
 program.addCommand(makeWhoamiCommand());
 program.addCommand(makeUpdateCommand());
+program.addCommand(makeA2ACommand());
 program.addCommand(makeSiweCommand());
 
 program.parseAsync(process.argv).catch((err) => {
