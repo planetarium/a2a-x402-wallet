@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const embeddedWallet = user.linkedAccounts.find(
       (a): a is WalletWithMetadata =>
         a.type === 'wallet' &&
-        a.walletClientType === 'privy' &&
+        (a.walletClientType === 'privy' || a.walletClientType === 'privy-v2') &&
         a.delegated === true &&
         a.id != null,
     );
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const token = await signJwt(claims.userId, embeddedWallet.id);
     return NextResponse.json({ token });
-  } catch (error) {
-    return NextResponse.json({ error: `Invalid Privy token: ${error}` }, { status: 401 });
+  } catch {
+    return NextResponse.json({ error: 'Invalid Privy token' }, { status: 401 });
   }
 }

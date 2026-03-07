@@ -66,7 +66,9 @@ export function getChainId(network: string): number {
 }
 
 export function getTokenMetadata(asset: string): { name: string; version: string } {
-  return TOKEN_METADATA[asset.toLowerCase()] ?? { name: 'USD Coin', version: '2' };
+  const meta = TOKEN_METADATA[asset.toLowerCase()];
+  if (!meta) throw new Error(`Unsupported token: ${asset}`);
+  return meta;
 }
 
 export function generateNonce(): `0x${string}` {

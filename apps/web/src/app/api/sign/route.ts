@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { privy } from '@/lib/privy';
 import { verifyJwt } from '@/lib/jwt';
+import { signLimiter, tooManyRequests } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('Authorization');
@@ -11,12 +12,17 @@ export async function POST(req: NextRequest) {
   }
 
   let walletId: string;
+  let userId: string;
   try {
     const payload = await verifyJwt(token);
     walletId = payload.walletId;
+    userId = payload.sub;
   } catch {
     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
+
+  const { allowed, resetAt } = signLimiter.check(userId);
+  if (!allowed) return tooManyRequests(resetAt);
 
   const { message } = await req.json() as { message: string };
 
