@@ -87,6 +87,33 @@ Completes the device session by exchanging a Privy token for an accessToken.
 
 ---
 
+### `POST /api/sign`
+
+Signs an arbitrary message with the user's embedded wallet (EIP-191 personal_sign).
+
+**Authorization**: accessToken (JWT)
+
+**Request body**:
+```json
+{ "message": "Hello, world!" }
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `message` | Yes | Arbitrary string to sign |
+
+**Response**:
+```json
+{ "signature": "0x..." }
+```
+
+**Errors**:
+- `400` — Missing `message`
+- `401` — Missing or expired token
+- `500` — Signing failed
+
+---
+
 ### `POST /api/auth/token`
 
 Exchanges a Privy auth token for an accessToken (JWT). Requires a delegated embedded wallet.
