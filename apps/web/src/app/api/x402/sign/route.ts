@@ -11,6 +11,7 @@ import {
   type PaymentRequirements,
   type TransferWithAuthorizationPayload,
 } from '@a2a-x402-wallet/x402';
+import { signLimiter, tooManyRequests } from '@/lib/rate-limit';
 
 /**
  * POST /api/x402/sign
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
+
+  const { allowed, resetAt } = signLimiter.check(userId);
+  if (!allowed) return tooManyRequests(resetAt);
 
   const body = await req.json() as {
     paymentRequirements?: PaymentRequirements;
@@ -110,7 +114,13 @@ export async function POST(req: NextRequest) {
     nonce: generateNonce(),
   };
 
-  const tokenMeta = getTokenMetadata(asset);
+  let tokenMeta: { name: string; version: string };
+  try {
+    tokenMeta = getTokenMetadata(asset);
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 });
+  }
+
   const typedData = buildTransferWithAuthorizationTypedData(
     asset,
     chainId,

@@ -18,7 +18,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
 
-  const user = await privy.getUser(userId);
+  let user;
+  try {
+    user = await privy.getUser(userId);
+  } catch {
+    return NextResponse.json({ error: 'Failed to retrieve user' }, { status: 500 });
+  }
 
   return NextResponse.json({ user });
 }
