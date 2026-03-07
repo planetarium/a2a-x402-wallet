@@ -126,6 +126,12 @@ a2a-wallet
 ├── sign                   Sign an arbitrary message with your wallet
 ├── x402
 │   └── sign               Sign x402 PaymentRequirements → PaymentPayload
+├── siwe
+│   ├── prepare            Generate an EIP-4361 SIWE message
+│   ├── encode             Encode message + signature into a base64url token
+│   ├── decode             Decode and inspect a SIWE token
+│   ├── verify             Verify token signature and expiration
+│   └── auth               All-in-one: prepare → sign → encode
 ├── whoami                 Show authenticated user info
 └── update                 Update a2a-wallet to the latest version
 ```
@@ -260,6 +266,124 @@ a2a-wallet x402 sign [options]
   }
 }
 ```
+
+### `siwe prepare`
+
+Generates an EIP-4361 SIWE message and prints it to stdout.
+
+If `--address` is omitted, the wallet address is resolved automatically from your linked account — **authentication required** in that case. If `--address` is provided explicitly, no authentication is needed.
+
+```bash
+a2a-wallet siwe prepare \
+  --domain app.example.com \
+  --uri https://app.example.com \
+  [--address 0xf39F...] [--ttl 7d] [--chain-id 1] [--statement "..."]
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--domain <host>` | Y | — | Domain (e.g. `app.example.com`) |
+| `--uri <uri>` | Y | — | URI (e.g. `https://app.example.com`) |
+| `--address <address>` | N | linked wallet | Ethereum address. If omitted, resolved from your account |
+| `--ttl <duration>` | N | `7d` | Expiration duration (`30m`, `1h`, `7d`) |
+| `--chain-id <n>` | N | `1` | EIP-155 chain ID |
+| `--statement <text>` | N | `I accept the Terms of Service` | Statement text |
+| `--token <jwt>` | N | config | One-time token for this request only |
+| `--url <url>` | N | config | Web app URL for this request only |
+
+**Output example:**
+
+```
+app.example.com wants you to sign in with your Ethereum account:
+0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+
+I accept the Terms of Service
+
+URI: https://app.example.com
+Version: 1
+Chain ID: 1
+Nonce: b7d986fd22d44f5fbdfe4d23161ca272
+Issued At: 2026-03-07T21:26:35.386Z
+Expiration Time: 2026-03-14T21:26:35.386Z
+```
+
+### `siwe encode`
+
+Encodes a SIWE message and signature into a base64url token. Does not require authentication.
+
+> **Token format:** The output is `base64url(JSON{ message, signature })` — **not a JWT**. There is no server-side secret or HMAC. Security is provided entirely by the ECDSA signature embedded in the SIWE message. Anyone can decode the token; only the private key holder could have produced it.
+
+```bash
+a2a-wallet siwe encode \
+  --signature 0xda0e85... \
+  [--message-file /tmp/msg.txt]  # reads stdin if omitted
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--signature <hex>` | Y | 65-byte ECDSA signature hex (`0x` + 130 hex chars) |
+| `--message-file <path>` | N | Path to message file (default: stdin) |
+
+### `siwe decode`
+
+Decodes a base64url SIWE token and prints its fields. Does not require authentication.
+
+```bash
+a2a-wallet siwe decode <token> [--json]
+```
+
+**Human-readable output:**
+
+```
+Address:    0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+Domain:     app.example.com
+Statement:  I accept the Terms of Service
+URI:        https://app.example.com
+Chain ID:   1
+Nonce:      e749d1c140844c86a279f3b5780e2bc4
+Issued At:  2026-03-05T09:39:13.849Z
+Expires:    2026-03-05T10:39:13.849Z
+Signature:  0xda0e85...
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+### `siwe verify`
+
+Recovers the signer address via EIP-191 and checks expiration. Does not require authentication.
+
+```bash
+a2a-wallet siwe verify <token>
+# stdout: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+# exit 0 on success, exit 1 on failure
+```
+
+### `siwe auth`
+
+All-in-one command: auto-detects your wallet address, generates a SIWE message, signs it via the API, and outputs the token. **Requires authentication.**
+
+```bash
+a2a-wallet siwe auth \
+  --domain app.example.com \
+  --uri https://app.example.com \
+  [--ttl 1h] [--chain-id 1] [--statement "..."] \
+  [--token <jwt>] [--url <url>] [--json]
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--domain <host>` | Y | — | Domain |
+| `--uri <uri>` | Y | — | URI |
+| `--ttl <duration>` | N | `7d` | Expiration duration (`30m`, `1h`, `7d`) |
+| `--chain-id <n>` | N | `1` | EIP-155 chain ID |
+| `--statement <text>` | N | `I accept the Terms of Service` | Statement text |
+| `--token <jwt>` | N | config | One-time token for this request only |
+| `--url <url>` | N | config | Web app URL for this request only |
+| `--json` | N | — | Output pure JSON to stdout |
+
+The wallet address is resolved automatically via `whoami`. The resulting base64url token can be presented to any service that supports SIWE authentication.
 
 ### `whoami`
 
