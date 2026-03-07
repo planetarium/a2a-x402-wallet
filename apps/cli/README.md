@@ -132,6 +132,12 @@ a2a-wallet
 │   ├── decode             Decode and inspect a SIWE token
 │   ├── verify             Verify token signature and expiration
 │   └── auth               All-in-one: prepare → sign → encode
+├── a2a
+│   ├── card               Fetch and display an agent's AgentCard
+│   ├── send               Send a message to an agent and print the response
+│   ├── stream             Send a message and stream the response via SSE
+│   ├── task               Get the current state of a task
+│   └── cancel             Request cancellation of a running task
 ├── whoami                 Show authenticated user info
 └── update                 Update a2a-wallet to the latest version
 ```
@@ -398,6 +404,74 @@ a2a-wallet whoami [--token <jwt>] [--url <url>] [--json]
 | `--token <jwt>` | One-time token for this request only |
 | `--url <url>` | Web app URL for this request only |
 | `--json` | Output pure JSON to stdout |
+
+### `a2a card`
+
+Fetches and displays an agent's AgentCard from `/.well-known/agent-card.json`.
+
+```bash
+a2a-wallet a2a card <url> [--path <path>] [--json]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--path <path>` | Custom agent card path (default: `/.well-known/agent-card.json`) |
+| `--json` | Output raw JSON (single line) |
+
+### `a2a send`
+
+Sends a message to an A2A agent and prints the full response.
+
+```bash
+a2a-wallet a2a send <url> <message> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--context-id <id>` | Continue an existing conversation context |
+| `--bearer <token>` | Bearer token for agent authentication |
+| `--json` | Output raw JSON (single line) |
+
+### `a2a stream`
+
+Sends a message to an A2A agent and streams the response via SSE. Text parts are written to stdout as they arrive; other events (task, status-update, artifact-update) are printed as pretty JSON.
+
+```bash
+a2a-wallet a2a stream <url> <message> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--context-id <id>` | Continue an existing conversation context |
+| `--bearer <token>` | Bearer token for agent authentication |
+| `--json` | Output each event as raw JSON (one line per event) |
+
+### `a2a task`
+
+Retrieves the current state of a task.
+
+```bash
+a2a-wallet a2a task <url> <taskId> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--history <n>` | Include last N messages from task history (default: `0`) |
+| `--bearer <token>` | Bearer token for agent authentication |
+| `--json` | Output raw JSON (single line) |
+
+### `a2a cancel`
+
+Requests cancellation of a running task.
+
+```bash
+a2a-wallet a2a cancel <url> <taskId> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--bearer <token>` | Bearer token for agent authentication |
+| `--json` | Output raw JSON (single line) |
 
 ### `update`
 

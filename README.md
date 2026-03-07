@@ -31,7 +31,7 @@ User (web login)
 
 1. User logs in with Privy (social or email) and delegates their embedded wallet to the backend
 2. Issue accessToken (JWT) and save it to the CLI
-3. Call `a2a-wallet sign` to request x402 signing
+3. Call `a2a-wallet x402 sign` to request x402 signing
 4. Web app performs EIP-712 signing via the user's wallet and returns a `PaymentPayload`
 
 ## Quick Start
@@ -51,7 +51,17 @@ cp .env.example .env
 pnpm dev
 ```
 
-### Build the CLI
+### Install the CLI
+
+**macOS / Linux**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh
+```
+
+**Windows** — Download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/planetarium/a2a-x402-wallet/releases/latest) page, rename it to `a2a-wallet.exe`, and place it in a folder on your PATH.
+
+**Build from source** (requires Node.js >= 22)
 
 ```bash
 pnpm --filter a2a-x402-wallet-cli build
