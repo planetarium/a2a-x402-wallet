@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@a2a-x402-wallet/x402": "workspace:*",
-    "commander": "^14.0.3"
+    "commander": "^14.0.3",
+    "viem": "^2"
   },
   "devDependencies": {
     "@types/node": "^22",
