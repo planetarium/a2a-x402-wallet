@@ -1,6 +1,6 @@
 # SIWE Bearer Auth Extension Specification v0.1
 
-**Extension URI**: `https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/refs/heads/main/docs/siwe-bearer-auth/v0.1`
+**Extension URI**: `https://github.com/planetarium/a2a-x402-wallet/tree/main/docs/siwe-bearer-auth/v0.1`
 
 ---
 
@@ -286,7 +286,7 @@ Agents supporting this extension declare it in their A2A Agent Card
 {
   "extensions": [
     {
-      "uri": "https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/refs/heads/main/docs/siwe-bearer-auth/v0.1",
+      "uri": "https://github.com/planetarium/a2a-x402-wallet/tree/main/docs/siwe-bearer-auth/v0.1",
       "description": "Authentication via Sign-In with Ethereum (EIP-4361). Clients must include a base64url-encoded SIWE token as a Bearer token in the Authorization header.",
       "required": true,
       "params": {
