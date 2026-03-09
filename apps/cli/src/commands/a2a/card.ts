@@ -3,7 +3,7 @@ import { DefaultAgentCardResolver } from '@a2a-js/sdk/client';
 
 export function makeCardCommand(): Command {
   return new Command('card')
-    .description("Fetch and display an agent's AgentCard")
+    .description("Fetch and display an agent's AgentCard from /.well-known/agent.json.\nShows the agent's name, capabilities, skills, and supported extensions.")
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
     .option('--path <path>', 'Custom agent card path (default: /.well-known/agent.json)')
     .option('--json', 'Output raw JSON (single line)')

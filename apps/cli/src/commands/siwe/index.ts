@@ -14,12 +14,12 @@ import {
 import type { SiweFields, SiweTokenPayload } from './types.js';
 
 export function makeSiweCommand(): Command {
-  const cmd = new Command('siwe').description('SIWE (Sign-In with Ethereum) token commands');
+  const cmd = new Command('siwe').description('SIWE (Sign-In with Ethereum) token commands (prepare, encode, decode, verify, auth)');
 
   // siwe prepare
   cmd
     .command('prepare')
-    .description('Generate an EIP-4361 SIWE message')
+    .description('Generate an unsigned EIP-4361 SIWE message for manual signing')
     .option('--address <address>', 'Ethereum address (default: your linked wallet address)')
     .requiredOption('--domain <host>', 'Domain (e.g. app.example.com)')
     .requiredOption('--uri <uri>', 'URI (e.g. https://app.example.com)')
@@ -68,7 +68,7 @@ export function makeSiweCommand(): Command {
   // siwe encode
   cmd
     .command('encode')
-    .description('Encode a SIWE message + signature into a base64url token')
+    .description('Combine a SIWE message and its signature into a base64url token')
     .requiredOption('--signature <hex>', 'Signature hex')
     .option('--message-file <path>', 'Path to message file (default: stdin)')
     .action(async (opts: { signature: string; messageFile?: string }) => {
@@ -88,7 +88,7 @@ export function makeSiweCommand(): Command {
   // siwe decode
   cmd
     .command('decode')
-    .description('Decode a base64url SIWE token')
+    .description('Decode and display the contents of a base64url SIWE token')
     .argument('<token>', 'base64url SIWE token')
     .option('--json', 'Output as JSON')
     .action((token: string, opts: { json?: boolean }) => {
@@ -122,7 +122,7 @@ export function makeSiweCommand(): Command {
   // siwe verify
   cmd
     .command('verify')
-    .description('Verify a SIWE token signature and expiration')
+    .description('Verify a SIWE token\'s signature and expiry, and print the recovered signer address')
     .argument('<token>', 'base64url SIWE token')
     .action(async (token: string) => {
       let decoded: SiweTokenPayload, fields: SiweFields;
@@ -166,7 +166,7 @@ export function makeSiweCommand(): Command {
   // siwe auth
   cmd
     .command('auth')
-    .description('Prepare, sign, and encode a SIWE token in one step')
+    .description('Generate, sign, and encode a SIWE token in one step using the linked wallet')
     .requiredOption('--domain <host>', 'Domain')
     .requiredOption('--uri <uri>', 'URI')
     .option('--ttl <duration>', 'Expiration duration (30m, 1h, 7d)', '7d')

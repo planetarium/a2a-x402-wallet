@@ -1,9 +1,9 @@
 import { Command } from 'commander';
 import { buildClientFactory, formatA2AError } from './client.js';
 
-export function makeTaskCommand(): Command {
-  return new Command('task')
-    .description('Get the current state of a task')
+function makeTasksGetCommand(): Command {
+  return new Command('get')
+    .description('Fetch the current state and message history of a task by ID.\nUseful for checking the result of a previous send or monitoring an in-progress task.')
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
     .argument('<taskId>', 'Task ID to retrieve')
     .option('--history <n>', 'Include last N messages from task history', '0')
@@ -28,4 +28,12 @@ export function makeTaskCommand(): Command {
         process.exit(1);
       }
     });
+}
+
+export function makeTasksCommand(): Command {
+  const cmd = new Command('tasks').description('Query and manage A2A tasks (get)');
+
+  cmd.addCommand(makeTasksGetCommand());
+
+  return cmd;
 }

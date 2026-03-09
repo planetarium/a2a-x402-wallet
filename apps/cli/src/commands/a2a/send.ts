@@ -4,7 +4,7 @@ import { buildClientFactory, formatA2AError } from './client.js';
 
 export function makeSendCommand(): Command {
   return new Command('send')
-    .description('Send a message to an agent and print the response')
+    .description('Send a text message to an agent and wait for the response.\nSupports multi-turn conversations (--context-id) and x402 payment payloads (--metadata).')
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
     .argument('<message>', 'Text message to send')
     .option('--context-id <id>', 'Continue an existing conversation context')

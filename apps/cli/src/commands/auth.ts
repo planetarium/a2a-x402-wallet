@@ -33,11 +33,11 @@ const POLL_INTERVAL_MS = 5_000;
 const TIMEOUT_MS = 120_000;
 
 export function makeAuthCommand(): Command {
-  const cmd = new Command('auth').description('Authentication commands');
+  const cmd = new Command('auth').description('Manage authentication — log in, log out, or use device flow (login, device, logout)');
 
   cmd
     .command('login')
-    .description('Log in to the wallet (opens browser callback)')
+    .description('Open a browser to log in and save the JWT token to config')
     .option('--url <url>', 'Web app URL to open (overrides config)')
     .option('--token <token>', 'Save a token directly without opening a browser')
     .action(async (opts: { url?: string; token?: string }) => {
@@ -112,11 +112,11 @@ export function makeAuthCommand(): Command {
       process.exit(0);
     });
 
-  const deviceCmd = new Command('device').description('Device flow login (recommended for agents)');
+  const deviceCmd = new Command('device').description('Non-interactive device flow login for agents/scripts (start, poll)');
 
   deviceCmd
     .command('start')
-    .description('Start a device login session and print the login URL, then exit')
+    .description('Start a device login session and print the authorization URL to visit')
     .option('--url <url>', 'Web app URL (overrides config)')
     .option('--json', 'Output nonce and loginUrl as JSON')
     .action(async (opts: { url?: string; json?: boolean }) => {
@@ -153,7 +153,7 @@ export function makeAuthCommand(): Command {
 
   deviceCmd
     .command('poll')
-    .description('Poll for device login completion and save the token')
+    .description('Poll until the device login is approved, then save the JWT token to config')
     .requiredOption('--nonce <nonce>', 'Nonce returned by "auth device start"')
     .option('--url <url>', 'Web app URL (overrides config)')
     .action(async (opts: { nonce: string; url?: string }) => {
@@ -211,7 +211,7 @@ export function makeAuthCommand(): Command {
 
   cmd
     .command('logout')
-    .description('Remove the saved token')
+    .description('Remove the saved JWT token from config')
     .action(() => {
       const existing = readConfig();
       if (!existing.token) {

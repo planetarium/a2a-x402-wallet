@@ -2,11 +2,11 @@ import { Command } from 'commander';
 import { readConfig, writeConfig, DEFAULT_URL } from '../config.js';
 
 export function makeConfigCommand(): Command {
-  const cmd = new Command('config').description('Manage CLI configuration');
+  const cmd = new Command('config').description('Read and write CLI configuration stored in ~/.a2a-wallet/config.json (set, get)');
 
   cmd
     .command('set <key> <value>')
-    .description('Set a config value (supported keys: token, url)')
+    .description('Save a config value by key — supported keys: token, url')
     .action((key: string, value: string) => {
       const supported = ['token', 'url'];
       if (!supported.includes(key)) {
@@ -21,7 +21,7 @@ export function makeConfigCommand(): Command {
 
   cmd
     .command('get [key]')
-    .description('Get config value(s). token is masked.')
+    .description('Print current config values (token is partially masked)')
     .action((key?: string) => {
       const config = readConfig();
       const url = config.url ?? DEFAULT_URL;

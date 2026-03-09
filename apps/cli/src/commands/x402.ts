@@ -3,7 +3,7 @@ import { getEffectiveConfig } from '../config.js';
 import { callX402Sign, exitNotLoggedIn } from '../api.js';
 
 export function makeX402Command(): Command {
-  const cmd = new Command('x402').description('x402 payment protocol commands');
+  const cmd = new Command('x402').description('x402 payment protocol commands (sign)');
 
   cmd
     .command('sign')
