@@ -1,7 +1,7 @@
 import { Command } from 'commander';
-import { spawn } from 'child_process';
 import { createServer } from 'http';
 import { getEffectiveConfig, readConfig, writeConfig } from '../config.js';
+import { tryOpenBrowser } from '../utils.js';
 
 function logTokenSaved(token: string): void {
   console.log('Token saved. You are now logged in.');
@@ -28,16 +28,6 @@ function logTokenSaved(token: string): void {
   }
 }
 
-function tryOpenBrowser(url: string): void {
-  const [bin, args]: [string, string[]] =
-    process.platform === 'darwin' ? ['open', [url]] :
-    process.platform === 'win32'  ? ['cmd', ['/c', 'start', '', url]] :
-    ['xdg-open', [url]];
-
-  const child = spawn(bin, args, { detached: true, stdio: 'ignore' });
-  child.on('error', () => { /* no browser available — that's fine */ });
-  child.unref();
-}
 
 const POLL_INTERVAL_MS = 5_000;
 const TIMEOUT_MS = 120_000;

@@ -15,6 +15,9 @@ export default function Home() {
           <Link href="/docs" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
             Docs
           </Link>
+          <Link href="/settings" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
+            Settings
+          </Link>
           <a
             href="https://github.com/planetarium/a2a-x402-wallet"
             target="_blank"
