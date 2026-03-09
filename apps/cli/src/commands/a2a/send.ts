@@ -8,10 +8,23 @@ export function makeSendCommand(): Command {
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
     .argument('<message>', 'Text message to send')
     .option('--context-id <id>', 'Continue an existing conversation context')
+    .option('--task-id <id>', 'Task ID to send message to (for payment or multi-turn)')
+    .option('--metadata <json>', 'JSON metadata to attach to the message (e.g. x402 payment payload)')
     .option('--bearer <token>', 'Bearer token for agent authentication')
     .option('--json', 'Output raw JSON (single line)')
-    .action(async (url: string, message: string, opts: { contextId?: string; bearer?: string; json?: boolean }) => {
+    .action(async (url: string, message: string, opts: { contextId?: string; taskId?: string; metadata?: string; bearer?: string; json?: boolean }) => {
       const factory = buildClientFactory(opts.bearer);
+
+      let parsedMetadata: Record<string, unknown> | undefined;
+      if (opts.metadata) {
+        try {
+          parsedMetadata = JSON.parse(opts.metadata);
+        } catch {
+          console.error('Error: --metadata must be valid JSON');
+          process.exit(1);
+        }
+      }
+
       try {
         const client = await factory.createFromUrl(url);
         const response = await client.sendMessage({
@@ -21,6 +34,8 @@ export function makeSendCommand(): Command {
             role: 'user',
             parts: [{ kind: 'text', text: message }],
             ...(opts.contextId ? { contextId: opts.contextId } : {}),
+            ...(opts.taskId ? { taskId: opts.taskId } : {}),
+            ...(parsedMetadata ? { metadata: parsedMetadata } : {}),
           },
         });
 
