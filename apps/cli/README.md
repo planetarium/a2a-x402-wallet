@@ -407,7 +407,7 @@ a2a-wallet whoami [--token <jwt>] [--url <url>] [--json]
 
 ### `a2a card`
 
-Fetches and displays an agent's AgentCard from `/.well-known/agent-card.json`.
+Fetches and displays an agent's AgentCard from `/.well-known/agent.json`.
 
 ```bash
 a2a-wallet a2a card <url> [--path <path>] [--json]
@@ -415,7 +415,7 @@ a2a-wallet a2a card <url> [--path <path>] [--json]
 
 | Option | Description |
 |--------|-------------|
-| `--path <path>` | Custom agent card path (default: `/.well-known/agent-card.json`) |
+| `--path <path>` | Custom agent card path (default: `/.well-known/agent.json`) |
 | `--json` | Output raw JSON (single line) |
 
 ### `a2a send`
