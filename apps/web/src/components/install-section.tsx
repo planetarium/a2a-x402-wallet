@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CopyButton } from './ui';
 
 const platforms = ['macOS / Linux', 'Windows', 'Source'] as const;
@@ -158,13 +158,13 @@ function WindowsGuide() {
 }
 
 export function InstallSection() {
-  const [active, setActive] = useState<Platform>('macOS / Linux');
-
-  useEffect(() => {
-    if (navigator.userAgent.toLowerCase().includes('win')) {
-      setActive('Windows');
-    }
-  }, []);
+  // Initializer function avoids calling setState inside useEffect (react-hooks/set-state-in-effect).
+  // typeof navigator guard is required for SSR (navigator is not available server-side).
+  const [active, setActive] = useState<Platform>(() =>
+    typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('win')
+      ? 'Windows'
+      : 'macOS / Linux'
+  );
 
   return (
     <div className="w-full max-w-2xl">

@@ -30,8 +30,10 @@ export interface X402SignRequestBody {
     asset: string;
     payTo: string;
     maxAmountRequired: string;
+    maxTimeoutSeconds?: number;
+    extra?: Record<string, unknown>;
   };
-  validForSeconds: number;
+  validForSeconds?: number;
 }
 
 const TIMEOUT_MS = 10_000;

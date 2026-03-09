@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'paymentRequirements is required' }, { status: 400 });
   }
 
-  const { scheme, network, asset, payTo, maxAmountRequired } = paymentRequirements;
+  const { scheme, network, asset, payTo, maxAmountRequired, maxTimeoutSeconds, extra } = paymentRequirements;
 
   if (!scheme || !network || !asset || !payTo || !maxAmountRequired) {
     return NextResponse.json(
@@ -105,20 +105,28 @@ export async function POST(req: NextRequest) {
 
   // Build ERC-3009 authorization object
   const now = Math.floor(Date.now() / 1000);
+  const validSeconds = maxTimeoutSeconds ?? validForSeconds;
   const authorization: TransferWithAuthorizationPayload = {
     from: fromAddress,
     to: payTo,
     value: maxAmountRequired,
-    validAfter: '0',
-    validBefore: String(now + validForSeconds),
+    validAfter: String(now - 600),
+    validBefore: String(now + validSeconds),
     nonce: generateNonce(),
   };
 
+  // Prefer EIP-712 domain metadata from extra field; fall back to hardcoded token registry
   let tokenMeta: { name: string; version: string };
-  try {
-    tokenMeta = getTokenMetadata(asset);
-  } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 });
+  const extraName = typeof extra?.['name'] === 'string' ? extra['name'] : undefined;
+  const extraVersion = typeof extra?.['version'] === 'string' ? extra['version'] : undefined;
+  if (extraName && extraVersion) {
+    tokenMeta = { name: extraName, version: extraVersion };
+  } else {
+    try {
+      tokenMeta = getTokenMetadata(asset);
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 400 });
+    }
   }
 
   const typedData = buildTransferWithAuthorizationTypedData(

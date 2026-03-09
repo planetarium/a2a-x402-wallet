@@ -6,6 +6,7 @@ export interface PaymentRequirements {
   asset: `0x${string}`;
   payTo: `0x${string}`;
   maxAmountRequired: string;
+  maxTimeoutSeconds?: number;
   resource?: string;
   description?: string;
   mimeType?: string;
