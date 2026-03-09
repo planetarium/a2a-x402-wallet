@@ -7,7 +7,7 @@ import { BtnSecondary } from './ui';
 const SIGNER_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_ID!;
 
 export function DelegateButton() {
-  const { user } = usePrivy();
+  const { user, getAccessToken } = usePrivy();
   const { addSigners } = useSigners();
   const [delegating, setDelegating] = useState(false);
 
@@ -27,6 +27,17 @@ export function DelegateButton() {
         address: embeddedWallet.address,
         signers: [{ signerId: SIGNER_ID }],
       });
+      const privyToken = await getAccessToken();
+      if (privyToken) {
+        try {
+          await fetch('/api/faucet', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${privyToken}` },
+          });
+        } catch {
+          // proceed regardless of faucet result
+        }
+      }
     } finally {
       setDelegating(false);
     }

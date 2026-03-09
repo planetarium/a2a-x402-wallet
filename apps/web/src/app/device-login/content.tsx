@@ -58,6 +58,17 @@ export function DeviceLoginContent() {
     setDelegating(true);
     try {
       await addSigners({ address: embeddedWallet.address, signers: [{ signerId: SIGNER_ID }] });
+      const privyToken = await getAccessToken();
+      if (privyToken) {
+        try {
+          await fetch('/api/faucet', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${privyToken}` },
+          });
+        } catch {
+          // proceed regardless of faucet result
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delegation failed.');
     } finally {
