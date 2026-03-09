@@ -5,7 +5,7 @@ export function makeCardCommand(): Command {
   return new Command('card')
     .description("Fetch and display an agent's AgentCard")
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
-    .option('--path <path>', 'Custom agent card path (default: /.well-known/agent-card.json)')
+    .option('--path <path>', 'Custom agent card path (default: /.well-known/agent.json)')
     .option('--json', 'Output raw JSON (single line)')
     .action(async (url: string, opts: { path?: string; json?: boolean }) => {
       const resolver = new DefaultAgentCardResolver();
