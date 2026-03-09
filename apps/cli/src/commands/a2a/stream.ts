@@ -4,7 +4,7 @@ import { buildClientFactory, formatA2AError } from './client.js';
 
 export function makeStreamCommand(): Command {
   return new Command('stream')
-    .description("Send a message and stream the agent's response via SSE")
+    .description("Send a text message and stream the agent's response in real time via SSE.\nText parts are written to stdout as they arrive; other events are printed as JSON.")
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
     .argument('<message>', 'Text message to send')
     .option('--context-id <id>', 'Continue an existing conversation context')

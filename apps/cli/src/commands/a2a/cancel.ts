@@ -3,7 +3,7 @@ import { buildClientFactory, formatA2AError } from './client.js';
 
 export function makeCancelCommand(): Command {
   return new Command('cancel')
-    .description('Request cancellation of a running task')
+    .description('Request cancellation of a running task.\nThe agent may or may not honor the request depending on its current state.')
     .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
     .argument('<taskId>', 'Task ID to cancel')
     .option('--bearer <token>', 'Bearer token for agent authentication')
