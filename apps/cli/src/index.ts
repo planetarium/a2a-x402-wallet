@@ -18,16 +18,16 @@ const program = new Command()
   .description('CLI for signing x402 payment payloads via a2a-wallet')
   .version(pkg.version);
 
-program.addCommand(makeAuthCommand());
-program.addCommand(makeConfigCommand());
-program.addCommand(makeSignCommand());
-program.addCommand(makeX402Command());
-program.addCommand(makeWhoamiCommand());
-program.addCommand(makeUpdateCommand());
 program.addCommand(makeA2ACommand());
+program.addCommand(makeX402Command());
+program.addCommand(makeAuthCommand());
 program.addCommand(makeSiweCommand());
+program.addCommand(makeConfigCommand());
+program.addCommand(makeWhoamiCommand());
 program.addCommand(makeBalanceCommand());
+program.addCommand(makeSignCommand());
 program.addCommand(makeFaucetCommand());
+program.addCommand(makeUpdateCommand());
 
 program.parseAsync(process.argv).catch((err) => {
   console.error(err);
