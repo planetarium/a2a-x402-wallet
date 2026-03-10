@@ -12,6 +12,10 @@ import {
   type TransferWithAuthorizationPayload,
 } from '@a2a-x402-wallet/x402';
 import { signLimiter, tooManyRequests } from '@/lib/rate-limit';
+import { db } from '@/lib/db';
+import { userPaymentLimits } from '@/lib/schema';
+import { and, eq } from 'drizzle-orm';
+import { findDefault } from '@/lib/default-payment-limits';
 
 /**
  * POST /api/x402/sign
@@ -78,6 +82,36 @@ export async function POST(req: NextRequest) {
 
   if (scheme !== 'exact') {
     return NextResponse.json({ error: `Unsupported scheme: ${scheme}. Only "exact" is supported.` }, { status: 400 });
+  }
+
+  // Check auto-approve limit
+  const normalizedAsset = asset.toLowerCase();
+  const normalizedNetwork = network.toLowerCase();
+  const [limitRow] = await db
+    .select({ maxAmount: userPaymentLimits.maxAmount })
+    .from(userPaymentLimits)
+    .where(
+      and(
+        eq(userPaymentLimits.userId, userId),
+        eq(userPaymentLimits.network, normalizedNetwork),
+        eq(userPaymentLimits.asset, normalizedAsset),
+      ),
+    );
+
+  const effectiveLimit = limitRow ?? findDefault(normalizedNetwork, normalizedAsset);
+
+  if (!effectiveLimit) {
+    return NextResponse.json(
+      { error: 'no_payment_limit_configured', message: 'No auto-approve limit set for this asset on this network' },
+      { status: 403 },
+    );
+  }
+
+  if (BigInt(maxAmountRequired) > BigInt(effectiveLimit.maxAmount)) {
+    return NextResponse.json(
+      { error: 'payment_limit_exceeded', limit: effectiveLimit.maxAmount, requested: maxAmountRequired },
+      { status: 403 },
+    );
   }
 
   let chainId: number;

@@ -36,40 +36,42 @@ export interface PaymentPayload {
   payload: ExactSchemePayload;
 }
 
-// Network → chainId mapping
-const NETWORK_CHAIN_IDS: Record<string, number> = {
-  'base': 8453,
-  'base-sepolia': 84532,
-  'ethereum': 1,
-  'optimism': 10,
-  'arbitrum': 42161,
+// Supported network names
+export type NetworkName = 'base' | 'base-sepolia';
+
+export interface NetworkConfig {
+  chainId: number;
+  usdcAddress: `0x${string}`;
+  usdcEip712: { name: string; version: string };
+}
+
+export const NETWORKS: Record<NetworkName, NetworkConfig> = {
+  'base': {
+    chainId: 8453,
+    usdcAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    usdcEip712: { name: 'USDC', version: '2' },
+  },
+  'base-sepolia': {
+    chainId: 84532,
+    usdcAddress: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    usdcEip712: { name: 'USDC', version: '2' },
+  },
 };
 
-// Well-known ERC-3009 token EIP-712 domain metadata
-// Keys are lowercase checksummed addresses
-const TOKEN_METADATA: Record<string, { name: string; version: string }> = {
-  // Base Mainnet USDC
-  '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': { name: 'USD Coin', version: '2' },
-  // Base Sepolia USDC
-  '0x036cbd53842c5426634e7929541ec2318f3dcf7e': { name: 'USD Coin', version: '2' },
-  // Ethereum Mainnet USDC
-  '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': { name: 'USD Coin', version: '2' },
-  // Optimism USDC
-  '0x0b2c639c533813f4aa9d7837caf62653d097ff85': { name: 'USD Coin', version: '2' },
-  // Arbitrum USDC
-  '0xaf88d065e77c8cc2239327c5edb3a432268e5831': { name: 'USD Coin', version: '2' },
-};
+export const USDC_DECIMALS = 6;
 
 export function getChainId(network: string): number {
-  const chainId = NETWORK_CHAIN_IDS[network];
-  if (chainId === undefined) throw new Error(`Unsupported network: ${network}`);
-  return chainId;
+  const cfg = NETWORKS[network as NetworkName];
+  if (!cfg) throw new Error(`Unsupported network: ${network}`);
+  return cfg.chainId;
 }
 
 export function getTokenMetadata(asset: string): { name: string; version: string } {
-  const meta = TOKEN_METADATA[asset.toLowerCase()];
-  if (!meta) throw new Error(`Unsupported token: ${asset}`);
-  return meta;
+  const lower = asset.toLowerCase();
+  for (const cfg of Object.values(NETWORKS)) {
+    if (cfg.usdcAddress.toLowerCase() === lower) return cfg.usdcEip712;
+  }
+  throw new Error(`Unsupported token: ${asset}`);
 }
 
 export function generateNonce(): `0x${string}` {

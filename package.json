@@ -7,7 +7,7 @@
     "web:build": "pnpm --filter a2a-x402-wallet-web build",
     "web:start": "pnpm --filter a2a-x402-wallet-web start",
     "cli:dev": "pnpm --filter a2a-x402-wallet-cli dev",
-    "cli:install": "pnpm --filter a2a-x402-wallet-cli build && npm install -g ./apps/cli",
+    "cli:install": "pnpm --filter @a2a-x402-wallet/x402 build && pnpm --filter a2a-x402-wallet-cli build && npm install -g ./apps/cli",
     "cli:uninstall": "npm uninstall -g a2a-x402-wallet-cli",
     "cli:build-binary": "pnpm --filter a2a-x402-wallet-cli build:binary",
     "web:deploy": "fly deploy --config apps/web/fly.toml",

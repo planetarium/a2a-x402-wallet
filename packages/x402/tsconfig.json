@@ -3,8 +3,10 @@
     "target": "ES2017",
     "lib": ["dom", "esnext"],
     "strict": true,
-    "moduleResolution": "bundler",
-    "module": "esnext",
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "outDir": "./dist",
+    "declaration": true,
     "isolatedModules": true,
     "skipLibCheck": true
   },

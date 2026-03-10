@@ -7,11 +7,13 @@ import { createPublicClient, http, formatUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { Logo, PageBackground, BtnPrimary, BtnSecondary, BtnGhost, Card, CopyButton } from '@/components/ui';
 import { DelegateButton } from '@/components/delegate-button';
+import { NETWORKS, USDC_DECIMALS } from '@a2a-x402-wallet/x402';
+import { LimitItem, DefaultLimitItem, SUPPORTED_TOKENS, type PaymentLimit } from '@/components/payment-limit-item';
 
 // ── chain config ──────────────────────────────────────────────────────────────
 
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const;
-const USDC_DECIMALS = 6;
+const USDC_ADDRESS = NETWORKS['base-sepolia'].usdcAddress;
+
 const FAUCET_THRESHOLD = 0.1;
 
 const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
@@ -29,6 +31,39 @@ const ERC20_BALANCE_ABI = [
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type FaucetState = 'idle' | 'loading' | 'success' | 'error';
+
+// ── GraphQL helper ────────────────────────────────────────────────────────────
+
+async function gql<T = unknown>(
+  query: string,
+  variables: Record<string, unknown>,
+  token: string,
+): Promise<{ data?: T; errors?: { message: string }[] }> {
+  const res = await fetch('/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ query, variables }),
+  });
+  return res.json() as Promise<{ data?: T; errors?: { message: string }[] }>;
+}
+
+const PAYMENT_LIMITS_QUERY = `
+  query { paymentLimits { network asset maxAmount isDefault } }
+`;
+
+const SET_LIMIT_MUTATION = `
+  mutation SetPaymentLimit($network: String!, $asset: String!, $maxAmount: String!) {
+    setPaymentLimit(network: $network, asset: $asset, maxAmount: $maxAmount) {
+      network asset maxAmount
+    }
+  }
+`;
+
+const DELETE_LIMIT_MUTATION = `
+  mutation DeletePaymentLimit($network: String!, $asset: String!) {
+    deletePaymentLimit(network: $network, asset: $asset)
+  }
+`;
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
@@ -168,6 +203,9 @@ export default function SettingsPage() {
         )}
       </Section>
 
+      {/* Payment Limits */}
+      <PaymentLimitsSection getAccessToken={getAccessToken} />
+
       {/* Testnet USDC */}
       <Section title="Base Sepolia USDC">
         <Row label="Balance">
@@ -246,6 +284,199 @@ export default function SettingsPage() {
         <BtnGhost onClick={logout}>Sign out</BtnGhost>
       </div>
     </Shell>
+  );
+}
+
+// ── Payment Limits Section ────────────────────────────────────────────────────
+
+function PaymentLimitsSection({ getAccessToken }: { getAccessToken: () => Promise<string | null> }) {
+  const [limits, setLimits] = useState<PaymentLimit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const [showForm, setShowForm] = useState(false);
+  const [formToken, setFormToken] = useState('');
+  const [formAmount, setFormAmount] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+
+  const fetchLimits = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      const result = await gql<{ paymentLimits: PaymentLimit[] }>(PAYMENT_LIMITS_QUERY, {}, token);
+      if (result.errors?.length) throw new Error(result.errors[0].message);
+      setLimits(result.data?.paymentLimits ?? []);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [getAccessToken]);
+
+  useEffect(() => { fetchLimits(); }, [fetchLimits]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      const selected = SUPPORTED_TOKENS.find((t) => t.key === formToken);
+      if (!selected) throw new Error('Please select a token');
+      const result = await gql<{ setPaymentLimit: PaymentLimit }>(
+        SET_LIMIT_MUTATION,
+        { network: selected.network, asset: selected.asset, maxAmount: formAmount.trim() },
+        token,
+      );
+      if (result.errors?.length) throw new Error(result.errors[0].message);
+      setFormToken('');
+      setFormAmount('');
+      setShowForm(false);
+      await fetchLimits();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(network: string, asset: string) {
+    const key = `${network}:${asset}`;
+    setDeletingKey(key);
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      const result = await gql(DELETE_LIMIT_MUTATION, { network, asset }, token);
+      if (result.errors?.length) throw new Error(result.errors[0].message);
+      await fetchLimits();
+    } catch {
+      // silently restore on error
+    } finally {
+      setDeletingKey(null);
+    }
+  }
+
+  const userLimits = limits.filter((l) => !l.isDefault);
+  const defaultLimits = limits.filter((l) => l.isDefault);
+
+  return (
+    <Card className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
+          Auto-Approve Payment Limits
+        </p>
+        <button
+          onClick={() => { setShowForm((v) => !v); setSaveError(null); }}
+          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+          aria-label={showForm ? 'Cancel' : 'Add limit'}
+        >
+          {showForm ? (
+            <>
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Cancel
+            </>
+          ) : (
+            <>
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add
+            </>
+          )}
+        </button>
+      </div>
+
+      <p className="text-xs text-zinc-500 leading-relaxed -mt-1">
+        Payment requests below the limit are signed automatically. Requests above the limit or for unconfigured assets are rejected.
+      </p>
+
+      {/* Add form */}
+      {showForm && (
+        <form onSubmit={handleSave} className="space-y-3 pt-1 border-t border-zinc-800">
+          <div className="grid grid-cols-2 gap-2.5 pt-3">
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-500">Network / Token</label>
+              <select
+                value={formToken}
+                onChange={(e) => setFormToken(e.target.value)}
+                required
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500 transition-colors cursor-pointer"
+              >
+                <option value="" disabled>Select token…</option>
+                {SUPPORTED_TOKENS.filter(
+                  (t) => !limits.some((l) => l.network === t.network && l.asset === t.asset && !l.isDefault),
+                ).map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-zinc-500">Max Amount <span className="text-zinc-600">(base units)</span></label>
+              <input
+                type="text"
+                placeholder="e.g. 1000000"
+                value={formAmount}
+                onChange={(e) => setFormAmount(e.target.value)}
+                required
+                pattern="\d+"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+              />
+            </div>
+          </div>
+          {saveError && (
+            <p className="text-xs text-red-400">{saveError}</p>
+          )}
+          <BtnPrimary type="submit" disabled={saving}>
+            {saving ? 'Saving…' : 'Save Limit'}
+          </BtnPrimary>
+        </form>
+      )}
+
+      {/* Limits list */}
+      {loading ? (
+        <div className="space-y-2 animate-pulse">
+          <div className="h-10 bg-zinc-800 rounded-lg" />
+          <div className="h-10 bg-zinc-800 rounded-lg" />
+        </div>
+      ) : fetchError ? (
+        <div className="rounded-lg border border-red-800/50 bg-red-950/30 px-3 py-2.5 flex items-center justify-between">
+          <p className="text-xs text-red-400">{fetchError}</p>
+          <button onClick={fetchLimits} className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer ml-3">
+            Retry
+          </button>
+        </div>
+      ) : userLimits.length > 0 ? (
+        <div className="space-y-2">
+          {userLimits.map((limit) => (
+            <LimitItem
+              key={`${limit.network}:${limit.asset}`}
+              limit={limit}
+              isDeleting={deletingKey === `${limit.network}:${limit.asset}`}
+              onDelete={() => handleDelete(limit.network, limit.asset)}
+            />
+          ))}
+        </div>
+      ) : defaultLimits.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-[11px] text-zinc-600 uppercase tracking-wider">Defaults</p>
+          {defaultLimits.map((limit) => (
+            <DefaultLimitItem key={`${limit.network}:${limit.asset}`} limit={limit} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-zinc-600 text-center py-2">
+          No limits configured. Payments for all assets will be rejected.
+        </p>
+      )}
+    </Card>
   );
 }
 
