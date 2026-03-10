@@ -5,6 +5,8 @@ import type { WalletWithMetadata } from '@privy-io/server-auth';
 import { privy } from '@/lib/privy';
 import { faucetLimiter, tooManyRequests } from '@/lib/rate-limit';
 import {
+  NETWORKS,
+  USDC_DECIMALS,
   buildTransferWithAuthorizationTypedData,
   generateNonce,
   type PaymentPayload,
@@ -15,10 +17,7 @@ import {
 
 const NETWORK = 'base-sepolia';
 const CHAIN = baseSepolia;
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as const;
-const USDC_DECIMALS = 6;
-const USDC_EIP712 = { name: 'USDC', version: '2' };
-const CHAIN_ID = 84532;
+const { usdcAddress: USDC_ADDRESS, chainId: CHAIN_ID, usdcEip712: USDC_EIP712 } = NETWORKS[NETWORK];
 const FACILITATOR_URL = 'https://x402.org/facilitator';
 
 const FAUCET_AMOUNT = '1000000';           // 1 USDC

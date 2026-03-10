@@ -31,6 +31,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter a2a-x402-wallet-web build
 
+# Bundle migrate.ts into a standalone ESM script (no node_modules needed at runtime)
+RUN apps/web/node_modules/.bin/esbuild apps/web/src/lib/migrate.ts \
+    --bundle --platform=node --format=esm --outfile=apps/web/migrate.mjs \
+    --external:pg-native \
+    --banner:js="import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
+
 # ---- Runner ----
 FROM node:22-alpine AS runner
 WORKDIR /app
@@ -47,6 +53,8 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/migrate.mjs ./apps/web/migrate.mjs
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/drizzle/migrations ./drizzle/migrations
 
 USER nextjs
 EXPOSE 3000

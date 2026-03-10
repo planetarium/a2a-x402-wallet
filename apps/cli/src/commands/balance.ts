@@ -1,18 +1,14 @@
 import { Command } from 'commander';
 import { createPublicClient, http, formatUnits } from 'viem';
-import { base, baseSepolia, mainnet, optimism, arbitrum } from 'viem/chains';
+import { base, baseSepolia } from 'viem/chains';
 import type { Chain } from 'viem';
+import { NETWORKS, USDC_DECIMALS } from '@a2a-x402-wallet/x402';
 import { getEffectiveConfig } from '../config.js';
 import { callWhoami, exitNotLoggedIn } from '../api.js';
 
-const USDC_DECIMALS = 6;
-
 const NETWORK_CONFIG: Record<string, { chain: Chain; usdc: `0x${string}` }> = {
-  'base':         { chain: base,       usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-  'base-sepolia': { chain: baseSepolia, usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' },
-  'ethereum':     { chain: mainnet,    usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
-  'optimism':     { chain: optimism,   usdc: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85' },
-  'arbitrum':     { chain: arbitrum,   usdc: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
+  'base':         { chain: base,        usdc: NETWORKS['base']['usdcAddress'] },
+  'base-sepolia': { chain: baseSepolia, usdc: NETWORKS['base-sepolia']['usdcAddress'] },
 };
 
 const ERC20_BALANCE_OF_ABI = [
