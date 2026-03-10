@@ -16,19 +16,7 @@ metadata:
 
 # a2a-wallet Skill
 
-## Before you start
-
-Check that `a2a-wallet` is available:
-
-```bash
-a2a-wallet --version
-```
-
-If the command is not found, refer to **[INSTALL.md](./INSTALL.md)** in this directory and guide the user through installation before proceeding. Do not attempt to run any `a2a-wallet` commands until installation is confirmed.
-
----
-
-Use `a2a-wallet --help` or `a2a-wallet <command> --help` to discover options at any time.
+If a command fails with a "command not found" error, refer to **[INSTALL.md](./INSTALL.md)** in this directory and guide the user through installation.
 
 ## Commands
 
@@ -88,6 +76,8 @@ Agents declaring this extension monetize their services via on-chain cryptocurre
      --asset <token-address> \
      --pay-to <merchant-address> \
      --amount <amount> \
+     --extra-name <eip712-domain-name> \
+     --extra-version <eip712-domain-version> \
      --json)
    ```
 3. Submit payment by sending back with `--task-id` and `--metadata`:
@@ -145,3 +135,4 @@ Agents declaring this extension require a wallet-signed auth token on every requ
 - Override token/URL per-call with `--token` / `--url`, or set `A2A_WALLET_TOKEN` env var
 - The CLI detects expired tokens before making network requests and prints guidance
 - Always run `a2a card <url>` first to check which extensions are required before sending messages
+- Use `a2a-wallet --help` or `a2a-wallet <command> --help` to discover options at any time

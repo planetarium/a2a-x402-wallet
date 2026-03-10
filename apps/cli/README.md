@@ -105,7 +105,9 @@ a2a-wallet x402 sign \
   --network base \
   --asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bda02913 \
   --pay-to 0xMerchantAddress \
-  --amount 120000000
+  --amount 120000000 \
+  --extra-name USDC \
+  --extra-version 2
 ```
 
 On success, a `PaymentPayload` JSON is printed to stdout.
@@ -244,6 +246,8 @@ a2a-wallet x402 sign [options]
 | `--asset <address>` | ERC-20 token contract address |
 | `--pay-to <address>` | Merchant wallet address |
 | `--amount <value>` | Max payment amount in token's smallest unit |
+| `--extra-name <name>` | EIP-712 domain name from token contract (e.g. `"USDC"`) |
+| `--extra-version <version>` | EIP-712 domain version from token contract (e.g. `"2"`) |
 
 **Optional**
 
@@ -556,6 +560,8 @@ A2A_WALLET_TOKEN=<jwt> a2a-wallet x402 sign \
   --asset 0x833589fCD6eDb6E08f4c7C32D4f71b54bda02913 \
   --pay-to 0xMerchantAddress \
   --amount 120000000 \
+  --extra-name USDC \
+  --extra-version 2 \
   --json
 ```
 
