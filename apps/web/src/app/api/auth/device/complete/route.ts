@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing nonce or privyToken' }, { status: 400 });
   }
 
-  const entry = deviceStore.get(nonce);
+  const entry = await deviceStore.get(nonce);
   if (!entry) {
     return NextResponse.json({ error: 'Expired or invalid nonce' }, { status: 404 });
   }
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const token = await signJwt(claims.userId, embeddedWallet.id);
-    const ok = deviceStore.complete(nonce, token);
+    const ok = await deviceStore.complete(nonce, token);
     if (!ok) {
       return NextResponse.json({ error: 'Nonce expired during token exchange' }, { status: 404 });
     }

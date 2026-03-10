@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing or invalid nonce' }, { status: 400 });
   }
 
-  const entry = deviceStore.get(nonce);
+  const entry = await deviceStore.get(nonce);
   if (!entry) {
     return NextResponse.json({ error: 'Expired or invalid nonce' }, { status: 404 });
   }
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status: 'pending' }, { headers });
   }
 
-  // Token ready — return it and clean up
-  deviceStore.delete(nonce);
+  // Token ready — return it and clean up the consumed nonce row
+  await deviceStore.delete(nonce);
   return NextResponse.json({ status: 'complete', token: entry.token }, { headers });
 }

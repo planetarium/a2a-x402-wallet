@@ -8,6 +8,13 @@
       "when": 1773128666937,
       "tag": "0000_wild_ken_ellis",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773215066937,
+      "tag": "0001_device_nonces",
+      "breakpoints": true
     }
   ]
 }
