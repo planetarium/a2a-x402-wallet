@@ -6,6 +6,13 @@ description: >
   by A2A agents. Trigger when the user needs to: send a message to an A2A agent, sign
   an x402 payment, authenticate via SIWE, log in or out of a2a-wallet, check their
   wallet address or balance, or configure the a2a-wallet CLI.
+license: Apache-2.0
+compatibility: >
+  Requires a2a-wallet CLI to be installed. macOS (Apple Silicon, Intel),
+  Linux (x64, arm64), Windows (x64). See INSTALL.md for setup instructions.
+metadata:
+  author: planetarium
+  repository: https://github.com/planetarium/a2a-x402-wallet
 ---
 
 # a2a-wallet Skill
