@@ -506,17 +506,18 @@ a2a-wallet update
 
 ## Agent Skill
 
-A ready-made Agent Skill is bundled in `skills/a2a-wallet/`. Install it once and any compatible agent will automatically know how to use `a2a-wallet` — the right commands, flags, and workflows — without requiring manual explanation.
+A ready-made Agent Skill is published on [skills.sh](https://skills.sh/planetarium/a2a-x402-wallet/a2a-wallet). Install it once and any compatible agent will automatically know how to use `a2a-wallet` — the right commands, flags, and workflows — without requiring manual explanation.
 
 ```bash
-# macOS / Linux
-cp -r skills/a2a-wallet ~/.agents/skills/
+# Via npx (recommended — works with Claude Code, Cursor, GitHub Copilot, Gemini CLI, and more)
+npx skills add planetarium/a2a-x402-wallet/a2a-wallet
 
-# Windows (PowerShell)
-Copy-Item -Recurse skills\a2a-wallet $env:USERPROFILE\.agents\skills\
+# Manual copy
+cp -r skills/a2a-wallet ~/.agents/skills/          # macOS / Linux (from repo root)
+Copy-Item -Recurse skills\a2a-wallet $env:USERPROFILE\.agents\skills\  # Windows (from repo root)
 ```
 
-The skill file follows a standard YAML frontmatter + Markdown format and can be loaded by any agent runtime that supports this convention.
+The skill follows the [Agent Skills](https://agentskills.io) open standard (YAML frontmatter + Markdown) and can be loaded by any compatible agent runtime.
 
 ## Using as an Agent Tool
 

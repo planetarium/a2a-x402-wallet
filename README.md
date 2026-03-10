@@ -15,6 +15,46 @@
 
 Users connect their wallet via the web app and perform x402 payment signing through the CLI. AI Agents can use the CLI as a Tool to automatically generate signed `PaymentPayload` objects whenever x402 payment is required.
 
+## Quick Start
+
+### Install the CLI
+
+**macOS / Linux**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh
+```
+
+**Windows** — Download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/planetarium/a2a-x402-wallet/releases/latest) page, rename it to `a2a-wallet.exe`, and place it in a folder on your PATH.
+
+**Build from source** (requires Node.js >= 22)
+
+```bash
+pnpm --filter a2a-x402-wallet-cli build
+npm install -g ./apps/cli
+```
+
+### Install the Agent Skill
+
+```bash
+npx skills add planetarium/a2a-x402-wallet/a2a-wallet
+```
+
+Supports Claude Code, Cursor, GitHub Copilot, Gemini CLI, and any [Agent Skills](https://agentskills.io)-compatible runtime.
+
+### Run the web app
+
+```bash
+cd apps/web
+cp .env.example .env
+# Fill in environment variables
+pnpm dev
+```
+
+See each app's README for details:
+- [apps/web/README.md](apps/web/README.md) — Web app
+- [apps/cli/README.md](apps/cli/README.md) — CLI
+
 ## Structure
 
 ```
@@ -44,44 +84,6 @@ User (web login)
 2. Issue accessToken (JWT) and save it to the CLI
 3. Call `a2a-wallet x402 sign` to request x402 signing
 4. Web app performs EIP-712 signing via the user's wallet and returns a `PaymentPayload`
-
-## Quick Start
-
-### Install dependencies
-
-```bash
-pnpm install
-```
-
-### Run the web app
-
-```bash
-cd apps/web
-cp .env.example .env
-# Fill in environment variables
-pnpm dev
-```
-
-### Install the CLI
-
-**macOS / Linux**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh
-```
-
-**Windows** — Download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/planetarium/a2a-x402-wallet/releases/latest) page, rename it to `a2a-wallet.exe`, and place it in a folder on your PATH.
-
-**Build from source** (requires Node.js >= 22)
-
-```bash
-pnpm --filter a2a-x402-wallet-cli build
-npm install -g ./apps/cli
-```
-
-See each app's README for details:
-- [apps/web/README.md](apps/web/README.md) — Web app
-- [apps/cli/README.md](apps/cli/README.md) — CLI
 
 ## Packages
 
