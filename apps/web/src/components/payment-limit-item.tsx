@@ -1,4 +1,5 @@
 import { NETWORKS } from '@a2a-x402-wallet/x402';
+import { formatUsdcAmountFull } from '@/lib/format';
 import { CopyButton } from '@/components/ui';
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -43,9 +44,10 @@ export function LimitItem({
         <span className="text-[11px] font-semibold text-zinc-200 uppercase tracking-wide">
           {limit.network}
         </span>
-        <div className="text-xs">
-          <span className="font-semibold text-zinc-300">≤ {limit.maxAmount}</span>
-          <span className="text-zinc-600 ml-1">base units</span>
+        <div className="text-xs flex items-baseline gap-1.5">
+          <span className="font-mono text-zinc-300">≤ {limit.maxAmount}</span>
+          <span className="text-zinc-600 text-[10px]">units</span>
+          <span className="text-zinc-500 text-[10px]">({formatUsdcAmountFull(limit.maxAmount)})</span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="text-[11px] text-zinc-600 font-mono truncate">{limit.asset}</span>
@@ -90,9 +92,10 @@ export function DefaultLimitItem({ limit }: { limit: PaymentLimit }) {
           <span className="text-[11px] text-zinc-600">{tokenInfo.tokenName}</span>
         )}
       </div>
-      <div className="text-xs">
-        <span className="font-semibold text-zinc-500">≤ {limit.maxAmount}</span>
-        <span className="text-zinc-700 ml-1">base units</span>
+      <div className="text-xs flex items-baseline gap-1.5">
+        <span className="font-mono text-zinc-500">≤ {limit.maxAmount}</span>
+        <span className="text-zinc-700 text-[10px]">units</span>
+        <span className="text-zinc-600 text-[10px]">({formatUsdcAmountFull(limit.maxAmount)})</span>
       </div>
     </div>
   );

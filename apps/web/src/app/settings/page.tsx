@@ -9,6 +9,7 @@ import { Logo, PageBackground, BtnPrimary, BtnSecondary, BtnGhost, Card, CopyBut
 import { DelegateButton } from '@/components/delegate-button';
 import { NETWORKS, USDC_DECIMALS } from '@a2a-x402-wallet/x402';
 import { LimitItem, DefaultLimitItem, SUPPORTED_TOKENS, type PaymentLimit } from '@/components/payment-limit-item';
+import { formatUsdcAmountFull } from '@/lib/format';
 
 // ── chain config ──────────────────────────────────────────────────────────────
 
@@ -429,6 +430,11 @@ function PaymentLimitsSection({ getAccessToken }: { getAccessToken: () => Promis
                 pattern="\d+"
                 className="w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
               />
+              {formAmount && (
+                <p className="text-[11px] text-zinc-500">
+                  = <span className="text-zinc-400 font-mono">{formatUsdcAmountFull(formAmount)}</span>
+                </p>
+              )}
             </div>
           </div>
           {saveError && (
