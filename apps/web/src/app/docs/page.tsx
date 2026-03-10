@@ -128,6 +128,10 @@ const nav = [
   { id: 'siwe', label: 'SIWE' },
   { id: 'a2a', label: 'A2A' },
   { id: 'sign', label: 'Sign' },
+  { id: 'whoami', label: 'Whoami' },
+  { id: 'balance', label: 'Balance' },
+  { id: 'faucet', label: 'Faucet' },
+  { id: 'update', label: 'Update' },
   { id: 'config', label: 'Config' },
   { id: 'agent', label: 'Agent Integration' },
 ];
@@ -359,10 +363,19 @@ a2a-wallet a2a send <url> "continue" --context-id <id>`}</Shell>
           <P>Sends a message and streams the response via SSE. Text parts are written to stdout as they arrive.</P>
           <Shell>{`a2a-wallet a2a stream <url> "your message"`}</Shell>
 
-          <H3 id="a2a-task">a2a task / cancel</H3>
-          <P>Retrieve or cancel a running task by ID.</P>
-          <Shell>{`a2a-wallet a2a task <url> <taskId>
-a2a-wallet a2a cancel <url> <taskId>`}</Shell>
+          <H3 id="a2a-tasks">a2a tasks get</H3>
+          <P>Fetch the current state and message history of a task by ID.</P>
+          <Shell>{`a2a-wallet a2a tasks get <url> <taskId>
+a2a-wallet a2a tasks get <url> <taskId> --history 10 --json`}</Shell>
+          <OptionTable rows={[
+            ['--history <n>', '0', 'Include last N messages from task history'],
+            ['--bearer <token>', '—', 'Bearer token for agent authentication'],
+            ['--json', '—', 'Output raw JSON (single line)'],
+          ]} />
+
+          <H3 id="a2a-cancel">a2a cancel</H3>
+          <P>Request cancellation of a running task. The agent may or may not honor the request.</P>
+          <Shell>{`a2a-wallet a2a cancel <url> <taskId>`}</Shell>
 
           {/* ── Sign ── */}
           <H2 id="sign">Sign</H2>
@@ -375,6 +388,48 @@ a2a-wallet sign --message "hello world" --json`}</Shell>
             ['--token <jwt>', 'One-time token override'],
             ['--url <url>', 'Web app URL override'],
           ]} />
+
+          {/* ── Whoami ── */}
+          <H2 id="whoami">Whoami</H2>
+          <P>Shows the authenticated user&apos;s Privy user ID and wallet address.</P>
+          <Shell>{`a2a-wallet whoami
+a2a-wallet whoami --json`}</Shell>
+          <OptionTable rows={[
+            ['--json', 'Output pure JSON'],
+            ['--token <jwt>', 'One-time token override'],
+            ['--url <url>', 'Web app URL override'],
+          ]} />
+
+          {/* ── Balance ── */}
+          <H2 id="balance">Balance</H2>
+          <P>Shows the USDC balance of the logged-in wallet on a given network.</P>
+          <Shell>{`a2a-wallet balance
+a2a-wallet balance --network base --json`}</Shell>
+          <OptionTable rows={[
+            ['--network <network>', 'base-sepolia', 'Network to query — see supported networks'],
+            ['--json', '—', 'Output pure JSON'],
+            ['--token <jwt>', 'config', 'One-time token override'],
+            ['--url <url>', 'config', 'Web app URL override'],
+          ]} />
+
+          {/* ── Faucet ── */}
+          <H2 id="faucet">Faucet</H2>
+          <P>
+            Opens the web faucet for testnet USDC (Base Sepolia). The browser opens automatically
+            if possible; otherwise the URL is printed to stdout.
+          </P>
+          <Shell>{`a2a-wallet faucet`}</Shell>
+          <OptionTable rows={[
+            ['--url <url>', 'Web app URL override'],
+          ]} />
+
+          {/* ── Update ── */}
+          <H2 id="update">Update</H2>
+          <P>
+            Updates the <Code>a2a-wallet</Code> binary to the latest release from GitHub.
+            Only applies to binary installations — npm / pnpm installs should reinstall from source.
+          </P>
+          <Shell>{`a2a-wallet update`}</Shell>
 
           {/* ── Config ── */}
           <H2 id="config">Config</H2>

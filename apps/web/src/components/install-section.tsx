@@ -3,46 +3,68 @@
 import { useState } from 'react';
 import { CopyButton } from './ui';
 
-const platforms = ['macOS / Linux', 'Windows', 'Source'] as const;
+const platforms = ['macOS / Linux', 'Windows'] as const;
 type Platform = (typeof platforms)[number];
 
 const INSTALL_PATH = '%USERPROFILE%\\.local\\bin';
 
-const commands: Record<Exclude<Platform, 'Windows'>, { label: string; code: string }[]> = {
-  'macOS / Linux': [
-    {
-      label: 'install',
-      code: 'curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh',
-    },
-    { label: 'verify', code: 'a2a-wallet --version' },
-  ],
-  Source: [
-    {
-      label: 'build',
-      code: 'pnpm install\npnpm --filter a2a-x402-wallet-cli build\nnpm install -g ./apps/cli',
-    },
-    { label: 'verify', code: 'a2a-wallet --version' },
-  ],
-};
 
-function CodeBlock({ code }: { code: string }) {
+
+function MacLinuxGuide() {
+  const INSTALL_CMD = 'curl -fsSL https://raw.githubusercontent.com/planetarium/a2a-x402-wallet/main/scripts/install.sh | sh';
+  const steps: { id: string; num: string; title: string; desc: React.ReactNode; content: React.ReactNode }[] = [
+    {
+      id: 'install',
+      num: '1',
+      title: 'Run the install script',
+      desc: 'Paste the command below into your terminal. The script downloads and installs the latest binary.',
+      content: (
+        <div className="relative rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+          <div className="absolute top-3 right-3">
+            <CopyButton text={INSTALL_CMD} ariaLabel="Copy command" />
+          </div>
+          <pre className="px-5 py-4 font-mono text-[13px] leading-6 overflow-x-auto pr-10">
+            <span className="block">
+              <span className="select-none text-zinc-600 mr-2">$</span>
+              <span className="text-zinc-100">{INSTALL_CMD}</span>
+            </span>
+          </pre>
+        </div>
+      ),
+    },
+    {
+      id: 'verify',
+      num: '2',
+      title: 'Verify the installation',
+      desc: 'Open a new terminal and confirm the install.',
+      content: (
+        <div className="relative rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden">
+          <div className="absolute top-3 right-3">
+            <CopyButton text="a2a-wallet --version" ariaLabel="Copy command" />
+          </div>
+          <div className="px-5 py-4 pr-10 font-mono text-[13px] leading-6">
+            <span className="select-none text-zinc-600 mr-2">$</span>
+            <span className="text-zinc-100">a2a-wallet --version</span>
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="relative rounded-lg border border-zinc-800 bg-zinc-900 overflow-hidden my-3">
-      <div className="absolute top-3 right-3">
-        <CopyButton text={code} ariaLabel="Copy command" />
-      </div>
-      <pre className="px-5 py-4 font-mono text-[13px] leading-6 overflow-x-auto pr-10">
-        {code.split('\n').map((line, i) => (
-          <span key={i} className="block">
-            {line === '' ? <br /> : (
-              <>
-                <span className="select-none text-zinc-600 mr-2">$</span>
-                <span className="text-zinc-100">{line}</span>
-              </>
-            )}
-          </span>
-        ))}
-      </pre>
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 divide-y divide-zinc-800">
+      {steps.map(({ id, num, title, desc, content }) => (
+        <div key={id} className="px-5 py-4 flex gap-4">
+          <div className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 text-[10px] font-bold text-zinc-500 mt-0.5">
+            {num}
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <p className="text-sm font-semibold text-zinc-200">{title}</p>
+            <p className="text-sm text-zinc-400 leading-relaxed">{desc}</p>
+            {content}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -170,7 +192,7 @@ export function InstallSection() {
     <div className="w-full max-w-2xl">
       <div className="flex items-center gap-4 mb-5">
         <div className="flex-1 h-px bg-zinc-800" />
-        <span className="text-xs text-zinc-600 tracking-wider uppercase">Install</span>
+        <span className="text-xs text-zinc-600 tracking-wider uppercase">Quick Start</span>
         <div className="flex-1 h-px bg-zinc-800" />
       </div>
 
@@ -190,17 +212,7 @@ export function InstallSection() {
       </div>
 
       {active === 'Windows' && <WindowsGuide />}
-
-      {active !== 'Windows' && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 divide-y divide-zinc-800">
-          {commands[active as Exclude<Platform, 'Windows'>].map(({ label, code }) => (
-            <div key={label} className="px-5 py-4">
-              <p className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">{label}</p>
-              <CodeBlock code={code} />
-            </div>
-          ))}
-        </div>
-      )}
+      {active === 'macOS / Linux' && <MacLinuxGuide />}
     </div>
   );
 }
