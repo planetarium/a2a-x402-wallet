@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
-import { buildClientFactory, formatA2AError } from './client.js';
+import { buildClientFactory, createClientWithX402, formatA2AError } from './client.js';
 
 export function makeSendCommand(): Command {
   return new Command('send')
@@ -26,7 +26,8 @@ export function makeSendCommand(): Command {
       }
 
       try {
-        const client = await factory.createFromUrl(url);
+        const { client, requestOptions } = await createClientWithX402(factory, url);
+
         const response = await client.sendMessage({
           message: {
             kind: 'message',
@@ -37,7 +38,7 @@ export function makeSendCommand(): Command {
             ...(opts.taskId ? { taskId: opts.taskId } : {}),
             ...(parsedMetadata ? { metadata: parsedMetadata } : {}),
           },
-        });
+        }, requestOptions);
 
         if (opts.json) {
           console.log(JSON.stringify(response));

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
-import { buildClientFactory, formatA2AError } from './client.js';
+import { buildClientFactory, createClientWithX402, formatA2AError } from './client.js';
 
 export function makeStreamCommand(): Command {
   return new Command('stream')
@@ -13,7 +13,8 @@ export function makeStreamCommand(): Command {
     .action(async (url: string, message: string, opts: { contextId?: string; bearer?: string; json?: boolean }) => {
       const factory = buildClientFactory(opts.bearer);
       try {
-        const client = await factory.createFromUrl(url);
+        const { client, requestOptions } = await createClientWithX402(factory, url);
+
         const stream = client.sendMessageStream({
           message: {
             kind: 'message',
@@ -22,7 +23,7 @@ export function makeStreamCommand(): Command {
             parts: [{ kind: 'text', text: message }],
             ...(opts.contextId ? { contextId: opts.contextId } : {}),
           },
-        });
+        }, requestOptions);
 
         for await (const event of stream) {
           if (opts.json) {
