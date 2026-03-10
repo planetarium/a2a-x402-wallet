@@ -112,7 +112,7 @@ export function CopyButton({ text, ariaLabel }: { text: string; ariaLabel?: stri
       onClick={handleCopy}
       aria-label={ariaLabel ?? 'Copy'}
       title={copied ? 'Copied!' : 'Copy'}
-      className="shrink-0 text-zinc-500 hover:text-zinc-200 transition-colors"
+      className="shrink-0 cursor-pointer text-zinc-500 hover:text-zinc-200 transition-colors"
     >
       {copied ? (
         <svg className="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

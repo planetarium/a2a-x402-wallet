@@ -1,6 +1,17 @@
 # a2a-x402-wallet
 
-A monorepo for an x402 payment signing service supporting the A2A (Agent-to-Agent) protocol.
+> **Personal Agent Tool for the Agent First Ecosystem**
+>
+> `a2a-x402-wallet` is purpose-built for AI agents operating in the Agent First service ecosystem. It provides a fast, frictionless way for personal agents to authenticate, pay, and interact with other agents and services — all without manual intervention.
+
+## Key Capabilities
+
+| Feature | Description |
+|---------|-------------|
+| **A2A Standard** | Full support for the Agent-to-Agent (A2A) protocol — enabling seamless interoperability between agents and services |
+| **X402 Payments** | Inter-agent payment signing via the x402 HTTP payment protocol — agents can pay other agents or services autonomously |
+| **SIWE Authentication** | Sign-In With Ethereum (SIWE) support — cryptographically proves agent identity without passwords |
+| **CLI as Agent Tool** | The `a2a-wallet` CLI is designed to be used directly by AI agents as a tool, enabling fully automated signing workflows |
 
 Users connect their wallet via the web app and perform x402 payment signing through the CLI. AI Agents can use the CLI as a Tool to automatically generate signed `PaymentPayload` objects whenever x402 payment is required.
 
