@@ -20,9 +20,9 @@ export function makeX402Command(): Command {
     .requiredOption('--asset <address>', 'ERC-20 token contract address')
     .requiredOption('--pay-to <address>', 'Merchant wallet address')
     .requiredOption('--amount <value>', 'Max payment amount in token smallest unit (e.g. 120000000 for 120 USDC)')
+    .requiredOption('--extra-name <name>', 'EIP-712 domain name from token contract (e.g. "USDC")')
+    .requiredOption('--extra-version <version>', 'EIP-712 domain version from token contract (e.g. "2")')
     .option('--valid-for <seconds>', 'Signature validity window in seconds (sets maxTimeoutSeconds)', '3600')
-    .option('--extra-name <name>', 'EIP-712 domain name from token contract (e.g. "USDC")')
-    .option('--extra-version <version>', 'EIP-712 domain version from token contract (e.g. "2")')
     .option('--token <jwt>', 'JWT for this request only (overrides config)')
     .option('--url <url>', 'Web app URL for this request only (overrides config)')
     .option('--json', 'Output pure JSON to stdout (recommended for Agent/MCP use)')
@@ -32,9 +32,9 @@ export function makeX402Command(): Command {
       asset: string;
       payTo: string;
       amount: string;
+      extraName: string;
+      extraVersion: string;
       validFor: string;
-      extraName?: string;
-      extraVersion?: string;
       token?: string;
       url?: string;
       json?: boolean;
@@ -49,11 +49,6 @@ export function makeX402Command(): Command {
         process.exit(1);
       }
 
-      const extra: Record<string, unknown> | undefined =
-        opts.extraName || opts.extraVersion
-          ? { name: opts.extraName, version: opts.extraVersion }
-          : undefined;
-
       try {
         const result = await callX402Sign(cfg.url, cfg.token, {
           paymentRequirements: {
@@ -63,7 +58,10 @@ export function makeX402Command(): Command {
             payTo: opts.payTo,
             maxAmountRequired: opts.amount,
             maxTimeoutSeconds,
-            ...(extra && { extra }),
+            extra: {
+              name: opts.extraName,
+              version: opts.extraVersion,
+            },
           },
         });
 
