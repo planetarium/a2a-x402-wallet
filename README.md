@@ -37,7 +37,7 @@ npm install -g ./apps/cli
 ### Install the Agent Skill
 
 ```bash
-npx skills add planetarium/a2a-x402-wallet/a2a-wallet
+npx skills add planetarium/a2a-x402-wallet
 ```
 
 Supports Claude Code, Cursor, GitHub Copilot, Gemini CLI, and any [Agent Skills](https://agentskills.io)-compatible runtime.
