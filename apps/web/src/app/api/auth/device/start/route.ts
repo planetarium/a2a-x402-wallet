@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!allowed) return tooManyRequests(resetAt);
 
   const nonce = randomUUID();
-  deviceStore.create(nonce, TTL_MS);
+  await deviceStore.create(nonce, TTL_MS);
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
   const loginUrl = `${baseUrl}/device-login?nonce=${encodeURIComponent(nonce)}`;

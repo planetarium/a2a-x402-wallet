@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useSyncExternalStore, useState } from 'react';
 import { CopyButton } from './ui';
 
 const platforms = ['macOS / Linux', 'Windows'] as const;
@@ -179,14 +179,18 @@ function WindowsGuide() {
   );
 }
 
+const noop = () => () => {};
+const getClientPlatform = (): Platform =>
+  navigator.userAgent.toLowerCase().includes('win') ? 'Windows' : 'macOS / Linux';
+const getServerPlatform = (): Platform => 'macOS / Linux';
+
 export function InstallSection() {
-  // Initializer function avoids calling setState inside useEffect (react-hooks/set-state-in-effect).
-  // typeof navigator guard is required for SSR (navigator is not available server-side).
-  const [active, setActive] = useState<Platform>(() =>
-    typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('win')
-      ? 'Windows'
-      : 'macOS / Linux'
-  );
+  // useSyncExternalStore gives 'macOS / Linux' on both server and first client render
+  // (matching SSR output), then switches to the real platform after hydration.
+  // This avoids both hydration mismatch and the react-hooks/set-state-in-effect rule.
+  const detected = useSyncExternalStore(noop, getClientPlatform, getServerPlatform);
+  const [override, setOverride] = useState<Platform | null>(null);
+  const active = override ?? detected;
 
   return (
     <div className="w-full max-w-2xl">
@@ -201,7 +205,7 @@ export function InstallSection() {
         {platforms.map((p) => (
           <button
             key={p}
-            onClick={() => setActive(p)}
+            onClick={() => setOverride(p)}
             className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               active === p ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
             }`}
