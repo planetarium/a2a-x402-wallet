@@ -184,7 +184,7 @@ export default function SettingsPage() {
               disabled={balanceLoading}
               aria-label="Refresh balance"
               title="Refresh balance"
-              className="text-zinc-600 hover:text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="cursor-pointer text-zinc-600 hover:text-zinc-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <svg
                 className={`h-3.5 w-3.5 ${balanceLoading ? 'animate-spin' : ''}`}
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                 href={`https://sepolia.basescan.org/tx/${faucetTx}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors underline underline-offset-2"
+                className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors underline underline-offset-2 cursor-pointer"
               >
                 View on BaseScan
               </a>
@@ -258,10 +258,10 @@ function Shell({ children }: { children: React.ReactNode }) {
 
       <header className="sticky top-0 z-20 w-full border-b border-zinc-900 bg-zinc-950/90 backdrop-blur">
         <div className="flex items-center justify-between px-8 py-4 max-w-2xl mx-auto w-full">
-          <Link href="/">
+          <Link href="/" className="cursor-pointer">
             <Logo />
           </Link>
-          <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
+          <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">
             ← Back
           </Link>
         </div>

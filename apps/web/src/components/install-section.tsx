@@ -57,7 +57,7 @@ function WindowsGuide() {
       content: (
         <a
           href="https://github.com/planetarium/a2a-x402-wallet/releases/latest/download/a2a-wallet-windows-x64.exe"
-          className="flex items-center justify-center gap-2 w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-4 py-2.5 text-sm font-medium text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800 transition-colors"
+          className="flex items-center justify-center gap-2 w-full rounded-lg border border-zinc-700 bg-zinc-800/60 px-4 py-2.5 text-sm font-medium text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800 transition-colors cursor-pointer"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -180,7 +180,7 @@ export function InstallSection() {
           <button
             key={p}
             onClick={() => setActive(p)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
               active === p ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >

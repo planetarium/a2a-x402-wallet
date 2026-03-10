@@ -101,7 +101,7 @@ function H2({ id, children }: { id: string; children: string }) {
       id={id}
       className="scroll-mt-20 text-xl font-bold text-zinc-100 mt-14 mb-4 pb-3 border-b border-zinc-800"
     >
-      <a href={`#${id}`} className="hover:text-zinc-400 transition-colors">
+      <a href={`#${id}`} className="hover:text-zinc-400 transition-colors cursor-pointer">
         {children}
       </a>
     </h2>
@@ -144,7 +144,7 @@ export default function DocsPage() {
         <div className="flex items-center gap-3 px-6 py-3 max-w-5xl mx-auto">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-200 transition-colors text-sm"
+            className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-200 transition-colors text-sm cursor-pointer"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M19 12H5M12 5l-7 7 7 7" />
@@ -166,7 +166,7 @@ export default function DocsPage() {
               <a
                 key={id}
                 href={`#${id}`}
-                className="text-[13px] text-zinc-600 hover:text-zinc-200 transition-colors py-1"
+                className="text-[13px] text-zinc-600 hover:text-zinc-200 transition-colors py-1 cursor-pointer"
               >
                 {label}
               </a>
