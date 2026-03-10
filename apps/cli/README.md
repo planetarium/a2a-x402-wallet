@@ -114,31 +114,33 @@ On success, a `PaymentPayload` JSON is printed to stdout.
 
 ```
 a2a-wallet
+├── a2a
+│   ├── card               Fetch and display an agent's AgentCard
+│   ├── send               Send a message to an agent and print the response
+│   ├── stream             Send a message and stream the response via SSE
+│   ├── tasks              Get the current state of a task
+│   └── cancel             Request cancellation of a running task
+├── x402
+│   └── sign               Sign x402 PaymentRequirements → PaymentPayload
 ├── auth
 │   ├── login              Log in via browser callback (humans)
 │   ├── device
 │   │   ├── start          Start device session and print login URL (agent step 1)
 │   │   └── poll           Poll for login completion and save token (agent step 2)
 │   └── logout             Remove the saved token
-├── config
-│   ├── set <key> <value>  Set a config value (token, url)
-│   └── get [key]          Show config values
-├── sign                   Sign an arbitrary message with your wallet
-├── x402
-│   └── sign               Sign x402 PaymentRequirements → PaymentPayload
 ├── siwe
 │   ├── prepare            Generate an EIP-4361 SIWE message
 │   ├── encode             Encode message + signature into a base64url token
 │   ├── decode             Decode and inspect a SIWE token
 │   ├── verify             Verify token signature and expiration
 │   └── auth               All-in-one: prepare → sign → encode
-├── a2a
-│   ├── card               Fetch and display an agent's AgentCard
-│   ├── send               Send a message to an agent and print the response
-│   ├── stream             Send a message and stream the response via SSE
-│   ├── task               Get the current state of a task
-│   └── cancel             Request cancellation of a running task
+├── config
+│   ├── set <key> <value>  Set a config value (token, url)
+│   └── get [key]          Show config values
 ├── whoami                 Show authenticated user info
+├── balance                Show wallet balance
+├── sign                   Sign an arbitrary message with your wallet
+├── faucet                 Request testnet tokens
 └── update                 Update a2a-wallet to the latest version
 ```
 
@@ -501,6 +503,20 @@ a2a-wallet update
 | `ethereum` | 1 |
 | `optimism` | 10 |
 | `arbitrum` | 42161 |
+
+## Agent Skill
+
+A ready-made Agent Skill is bundled in `skills/a2a-wallet/`. Install it once and any compatible agent will automatically know how to use `a2a-wallet` — the right commands, flags, and workflows — without requiring manual explanation.
+
+```bash
+# macOS / Linux
+cp -r skills/a2a-wallet ~/.agents/skills/
+
+# Windows (PowerShell)
+Copy-Item -Recurse skills\a2a-wallet $env:USERPROFILE\.agents\skills\
+```
+
+The skill file follows a standard YAML frontmatter + Markdown format and can be loaded by any agent runtime that supports this convention.
 
 ## Using as an Agent Tool
 
