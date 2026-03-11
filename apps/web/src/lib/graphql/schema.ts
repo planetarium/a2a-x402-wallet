@@ -2,9 +2,30 @@ import { eq, and } from 'drizzle-orm';
 import { GraphQLError } from 'graphql';
 import { getChainId } from '@a2a-x402-wallet/x402';
 import { db } from '../db';
-import { userPaymentLimits } from '../schema';
+import { userPaymentLimits, userSettings } from '../schema';
 import { mergeWithDefaults } from '../default-payment-limits';
 import { builder } from './builder';
+import { defaultExpirationTime } from '../jwt';
+
+// ── UserSettings ──────────────────────────────────────────────────────────────
+
+/** Format accepted for jwtExpiresIn: a positive integer followed by s/m/h/d. */
+const JWT_EXPIRES_IN_RE = /^\d+[smhd]$/;
+
+interface UserSettingsShape {
+  jwtExpiresIn: string | null;
+  jwtExpiresInDefault: string;
+}
+
+const UserSettings = builder.objectRef<UserSettingsShape>('UserSettings').implement({
+  fields: (t) => ({
+    // null means the server default (JWT_EXPIRATION_TIME env var) is in use
+    jwtExpiresIn: t.exposeString('jwtExpiresIn', { nullable: true }),
+    jwtExpiresInDefault: t.exposeString('jwtExpiresInDefault'),
+  }),
+});
+
+// ── PaymentLimit ──────────────────────────────────────────────────────────────
 
 interface PaymentLimitShape {
   network:   string;
@@ -24,6 +45,21 @@ const PaymentLimit = builder.objectRef<PaymentLimitShape>('PaymentLimit').implem
 
 builder.queryType({
   fields: (t) => ({
+    userSettings: t.field({
+      type:     UserSettings,
+      nullable: true,
+      resolve:  async (_root, _args, ctx): Promise<UserSettingsShape> => {
+        if (!ctx.userId) throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
+        const rows = await db
+          .select({ jwtExpiresIn: userSettings.jwtExpiresIn })
+          .from(userSettings)
+          .where(eq(userSettings.userId, ctx.userId))
+          .limit(1);
+        // Return a shape with null jwtExpiresIn when the user has no saved setting
+        return { jwtExpiresIn: rows[0]?.jwtExpiresIn ?? null, jwtExpiresInDefault: defaultExpirationTime };
+      },
+    }),
+
     paymentLimits: t.field({
       type:    [PaymentLimit],
       resolve: async (_root, _args, ctx) => {
@@ -44,6 +80,37 @@ builder.queryType({
 
 builder.mutationType({
   fields: (t) => ({
+    setJwtExpiresIn: t.field({
+      type: UserSettings,
+      args: {
+        // null clears the per-user override, reverting to the server default
+        value: t.arg.string({ required: false }),
+      },
+      resolve: async (_root, args, ctx): Promise<UserSettingsShape> => {
+        if (!ctx.userId) throw new GraphQLError('Unauthorized', { extensions: { code: 'UNAUTHORIZED' } });
+
+        const value = args.value ?? null;
+
+        // Validate format when a value is provided: e.g. 5m, 1h, 24h, 7d
+        if (value !== null && !JWT_EXPIRES_IN_RE.test(value)) {
+          throw new GraphQLError(
+            'Invalid jwtExpiresIn format. Use a positive integer followed by s, m, h, or d (e.g. 5m, 1h, 24h, 7d).',
+            { extensions: { code: 'BAD_USER_INPUT' } },
+          );
+        }
+
+        await db
+          .insert(userSettings)
+          .values({ userId: ctx.userId, jwtExpiresIn: value, updatedAt: new Date() })
+          .onConflictDoUpdate({
+            target: userSettings.userId,
+            set:    { jwtExpiresIn: value, updatedAt: new Date() },
+          });
+
+        return { jwtExpiresIn: value, jwtExpiresInDefault: defaultExpirationTime };
+      },
+    }),
+
     setPaymentLimit: t.field({
       type: PaymentLimit,
       args: {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { eq } from 'drizzle-orm';
 import { privy } from '@/lib/privy';
 import { signJwt } from '@/lib/jwt';
+import { db } from '@/lib/db';
+import { userSettings } from '@/lib/schema';
 import { deviceStore } from '@/lib/device-store';
 import { completeLimiter, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 import type { WalletWithMetadata } from '@privy-io/server-auth';
@@ -46,7 +49,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No delegated embedded wallet found' }, { status: 400 });
     }
 
-    const token = await signJwt(claims.userId, embeddedWallet.id);
+    // Look up the user's custom JWT expiry setting; fall back to server default if absent
+    const settingRows = await db
+      .select({ jwtExpiresIn: userSettings.jwtExpiresIn })
+      .from(userSettings)
+      .where(eq(userSettings.userId, claims.userId))
+      .limit(1);
+    const jwtExpiresIn = settingRows[0]?.jwtExpiresIn ?? undefined;
+
+    const token = await signJwt(claims.userId, embeddedWallet.id, jwtExpiresIn);
     const ok = await deviceStore.complete(nonce, token);
     if (!ok) {
       return NextResponse.json({ error: 'Nonce expired during token exchange' }, { status: 404 });

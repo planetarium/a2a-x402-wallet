@@ -146,6 +146,43 @@ Returns the authenticated user's information for the current accessToken.
 
 ---
 
+### `POST /api/faucet`
+
+Sends 1 testnet USDC (Base Sepolia) to the authenticated user's wallet. Rate-limited to prevent abuse.
+
+**Authorization**: Privy token
+
+**Request**: no body
+
+**Response**:
+```json
+{ "transaction": "0x..." }
+```
+
+**Errors**:
+- `400` — Wallet balance is already above the threshold (0.1 USDC)
+- `401` — Invalid Privy token
+- `500` — Transfer failed
+
+---
+
+### `POST /api/graphql`
+
+GraphQL API for user settings and payment limits. Uses `graphql-yoga`.
+
+**Authorization**: Privy token
+
+**Queries**:
+- `userSettings` — Returns `{ jwtExpiresIn }` (current per-user JWT expiry override; `null` means server default)
+- `paymentLimits` — Returns list of `{ network, asset, maxAmount, isDefault }` entries
+
+**Mutations**:
+- `setJwtExpiresIn(value: String)` — Set or clear per-user JWT expiry override. Format: `5m`, `1h`, `24h`, `7d`. Pass `null` to revert to server default.
+- `setPaymentLimit(network, asset, maxAmount)` — Upsert a payment limit for a token
+- `deletePaymentLimit(network, asset)` — Remove a payment limit
+
+---
+
 ### `POST /api/x402/sign`
 
 Signs x402 `PaymentRequirements` and returns a `PaymentPayload`. Uses ERC-3009 TransferWithAuthorization (EIP-712).
@@ -226,10 +263,22 @@ cp .env.example .env
 | `NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_ID` | Privy delegation signing key ID (client-side) |
 | `PRIVY_AUTHORIZATION_PRIVATE_KEY` | Private key for delegation signing |
 | `JWT_SECRET` | Secret for signing accessTokens |
-| `JWT_EXPIRATION_TIME` | accessToken expiry (default: `5m`) |
+| `JWT_EXPIRATION_TIME` | Server-default accessToken expiry (default: `5m`). Users can override this per-account in Settings. |
 | `NEXT_PUBLIC_APP_URL` | Public URL of this app, used to build device-login URLs (required in production) |
+| `DATABASE_URL` | PostgreSQL connection string (used for device code store, payment limits, and user settings) |
+| `FAUCET_ADMIN_WALLET_ID` | Privy wallet ID of the faucet admin wallet (Base Sepolia) |
+| `FAUCET_ADMIN_ADDRESS` | Ethereum address corresponding to `FAUCET_ADMIN_WALLET_ID` |
 
-### 3. Run development server
+### 3. Set up the database
+
+A PostgreSQL database is required for the device code store, payment limits, and user settings.
+
+```bash
+# Run database migrations
+pnpm db:migrate
+```
+
+### 4. Run development server
 
 ```bash
 pnpm dev
@@ -237,7 +286,7 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000), log in, and delegate your wallet.
 
-### 4. Build
+### 5. Build
 
 ```bash
 pnpm build
@@ -245,8 +294,11 @@ pnpm build
 
 ## Tech Stack
 
-- **Next.js 16** (App Router)
+- **Next.js 15** (App Router)
 - **Privy** — Embedded wallets, social login, server-side signing
+- **PostgreSQL** — Device code store, payment limits, user settings
+- **Drizzle ORM** — Database schema and migrations
+- **graphql-yoga** — GraphQL API for settings/limits
 - **jose** — JWT signing and verification
 - **Tailwind CSS**
 - **TypeScript**
