@@ -14,7 +14,9 @@ export async function POST(req: NextRequest) {
   const userCode = generateUserCode();
   await a2aDeviceStore.create(deviceCode, userCode, TTL_MS);
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  const host = req.headers.get('x-forwarded-host') ?? req.nextUrl.host;
+  const proto = req.headers.get('x-forwarded-proto') ?? req.nextUrl.protocol.replace(':', '');
+  const baseUrl = process.env.APP_URL ?? `${proto}://${host}`;
   const verificationUri = `${baseUrl}/a2a/login`;
   const verificationUriComplete = `${verificationUri}?user_code=${encodeURIComponent(userCode)}`;
 
