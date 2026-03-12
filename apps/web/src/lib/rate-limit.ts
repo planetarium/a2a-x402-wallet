@@ -43,16 +43,22 @@ class MemoryRateLimiter {
 }
 
 // One limiter instance per logical endpoint.
-// /start    — 10 req/min: creating sessions is the most abusable action
-// /complete — 10 req/min: same as start
-// /poll     — 60 req/min: CLI polls every ~2 s, allow up to 1 req/s with headroom
-// /sign     — 30 req/min: authenticated signing, rate-limit per token holder
-// /faucet   —  3 req/hr: prevent draining; real balance gate provides secondary guard
-export const startLimiter    = new MemoryRateLimiter(10,    60_000);
-export const completeLimiter = new MemoryRateLimiter(10,    60_000);
-export const pollLimiter     = new MemoryRateLimiter(60,    60_000);
-export const signLimiter     = new MemoryRateLimiter(30,    60_000);
-export const faucetLimiter   = new MemoryRateLimiter( 3, 3_600_000);
+// /start          — 10 req/min: creating sessions is the most abusable action
+// /complete       — 10 req/min: same as start
+// /poll           — 60 req/min: CLI polls every ~2 s, allow up to 1 req/s with headroom
+// /sign           — 30 req/min: authenticated signing, rate-limit per token holder
+// /faucet         —  3 req/hr: prevent draining; real balance gate provides secondary guard
+// a2a /start      — 10 req/min: same as /start
+// a2a /poll       — 60 req/min: same as /poll
+// a2a /complete   — 10 req/min: same as /complete
+export const startLimiter       = new MemoryRateLimiter(10,    60_000);
+export const completeLimiter    = new MemoryRateLimiter(10,    60_000);
+export const pollLimiter        = new MemoryRateLimiter(60,    60_000);
+export const signLimiter        = new MemoryRateLimiter(30,    60_000);
+export const faucetLimiter      = new MemoryRateLimiter( 3, 3_600_000);
+export const a2aStartLimiter    = new MemoryRateLimiter(10,    60_000);
+export const a2aPollLimiter     = new MemoryRateLimiter(60,    60_000);
+export const a2aCompleteLimiter = new MemoryRateLimiter(10,    60_000);
 
 /** Extract the best available client IP from a Next.js request. */
 export function getClientIp(req: NextRequest): string {
