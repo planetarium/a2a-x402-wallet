@@ -3,13 +3,18 @@ import { SignJWT, jwtVerify } from 'jose';
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) throw new Error('JWT_SECRET environment variable is required');
 const secret = new TextEncoder().encode(jwtSecret);
-const expirationTime = process.env.JWT_EXPIRATION_TIME || '5m';
+export const defaultExpirationTime = process.env.JWT_EXPIRATION_TIME || '5m';
+const expirationTime = defaultExpirationTime;
 
-export async function signJwt(userId: string, walletId: string): Promise<string> {
+/**
+ * Signs a JWT for the given user/wallet pair.
+ * @param expiresIn - Optional per-user override; falls back to JWT_EXPIRATION_TIME env var.
+ */
+export async function signJwt(userId: string, walletId: string, expiresIn?: string): Promise<string> {
   return new SignJWT({ sub: userId, walletId })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime(expirationTime)
+    .setExpirationTime(expiresIn ?? expirationTime)
     .sign(secret);
 }
 

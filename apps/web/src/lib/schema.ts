@@ -1,5 +1,15 @@
 import { pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
+// Per-user settings persisted in the database.
+// jwtExpiresIn: null means fall back to the JWT_EXPIRATION_TIME env var.
+export const userSettings = pgTable('user_settings', {
+  id:           serial('id').primaryKey(),
+  userId:       text('user_id').notNull().unique(),
+  jwtExpiresIn: text('jwt_expires_in'),
+  createdAt:    timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const userPaymentLimits = pgTable(
   'user_payment_limits',
   {

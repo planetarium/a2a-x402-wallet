@@ -47,7 +47,8 @@ Supports Claude Code, Cursor, GitHub Copilot, Gemini CLI, and any [Agent Skills]
 ```bash
 cd apps/web
 cp .env.example .env
-# Fill in environment variables
+# Fill in environment variables (see apps/web/README.md)
+pnpm db:migrate   # requires DATABASE_URL
 pnpm dev
 ```
 
@@ -60,10 +61,12 @@ See each app's README for details:
 ```
 a2a-x402-wallet/
 ├── apps/
-│   ├── web/          # Next.js web app (Privy wallet, signing API)
+│   ├── web/          # Next.js web app (Privy wallet, signing API, settings)
 │   └── cli/          # CLI tool (a2a-wallet)
 ├── packages/
 │   └── x402/         # Shared x402 protocol types and utilities
+├── skills/
+│   └── a2a-wallet/   # Agent Skill (YAML + Markdown, for Claude Code etc.)
 └── docs/
     ├── a2a-x402-spec-v0.2.md   # A2A x402 protocol specification
     └── cli-requirements.md     # CLI requirements document
