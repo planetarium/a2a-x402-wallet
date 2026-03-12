@@ -3,7 +3,6 @@
 import { Command } from 'commander';
 import { makeAuthCommand } from './commands/auth.js';
 import { makeConfigCommand } from './commands/config.js';
-import { makeSignCommand } from './commands/sign.js';
 import { makeX402Command } from './commands/x402.js';
 import { makeWhoamiCommand } from './commands/whoami.js';
 import { makeUpdateCommand } from './commands/update.js';
@@ -25,7 +24,6 @@ program.addCommand(makeSiweCommand());
 program.addCommand(makeConfigCommand());
 program.addCommand(makeWhoamiCommand());
 program.addCommand(makeBalanceCommand());
-program.addCommand(makeSignCommand());
 program.addCommand(makeFaucetCommand());
 program.addCommand(makeUpdateCommand());
 

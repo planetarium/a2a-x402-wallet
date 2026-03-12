@@ -33,3 +33,22 @@ export const deviceNonces = pgTable('device_nonces', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Stores short-lived device codes for the A2A Device Code Flow (RFC 8628).
+// Temporary flow state — rows are deleted once the CLI consumes the access_token.
+export const a2aDeviceCodes = pgTable('a2a_device_codes', {
+  code:      text('code').primaryKey(),
+  // Human-readable code shown to the user (e.g. "WDJB-MJHT").
+  userCode:  text('user_code'),
+  // Populated by /a2a/device/complete after the user authenticates in the browser.
+  apiKey:    text('api_key'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Stores persistent API keys issued via the A2A Device Code Flow.
+// Keyed on the api_key value itself for fast O(1) lookup.
+export const a2aApiKeys = pgTable('a2a_api_keys', {
+  apiKey:    text('api_key').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

@@ -11,6 +11,8 @@
     "cli:uninstall": "npm uninstall -g a2a-x402-wallet-cli",
     "cli:build-binary": "pnpm --filter a2a-x402-wallet-cli build:binary",
     "web:deploy": "fly deploy --config apps/web/fly.toml",
+    "web:db:generate": "pnpm --filter a2a-x402-wallet-web db:generate",
+    "web:db:migrate": "pnpm --filter a2a-x402-wallet-web db:migrate",
     "lint": "pnpm --filter a2a-x402-wallet-cli run lint && pnpm --filter a2a-x402-wallet-web run lint"
   }
 }

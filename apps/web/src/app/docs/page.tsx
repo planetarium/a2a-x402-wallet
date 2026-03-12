@@ -345,7 +345,7 @@ a2a-wallet siwe decode <token> --json`}</Shell>
           <P>Interact with A2A-compatible agents.</P>
 
           <H3 id="a2a-card">a2a card</H3>
-          <P>Fetches and displays an agent&apos;s AgentCard from <Code>/.well-known/agent-card.json</Code>.</P>
+          <P>Fetches and displays an agent&apos;s AgentCard from <Code>/.well-known/agent.json</Code>.</P>
           <Shell>{`a2a-wallet a2a card <url>
 a2a-wallet a2a card <url> --json`}</Shell>
 

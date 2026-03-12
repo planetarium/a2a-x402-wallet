@@ -23,5 +23,19 @@
       "tag": "0002_user_settings",
       "breakpoints": true
     }
+    ,{
+      "idx": 3,
+      "version": "7",
+      "when": 1773301466937,
+      "tag": "0003_a2a_device_flow",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 4,
+      "version": "7",
+      "when": 1773387866937,
+      "tag": "0004_recreate_a2a_tables",
+      "breakpoints": true
+    }
   ]
 }

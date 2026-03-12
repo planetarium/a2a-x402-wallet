@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { buildClientFactory, formatA2AError } from './client.js';
+import { getConnection } from '../../store/config.js';
 
 export function makeSendCommand(): Command {
   return new Command('send')
@@ -13,7 +14,8 @@ export function makeSendCommand(): Command {
     .option('--bearer <token>', 'Bearer token for agent authentication')
     .option('--json', 'Output raw JSON (single line)')
     .action(async (url: string, message: string, opts: { contextId?: string; taskId?: string; metadata?: string; bearer?: string; json?: boolean }) => {
-      const factory = buildClientFactory(opts.bearer);
+      const bearer = opts.bearer ?? getConnection(url)?.apiKey;
+      const factory = buildClientFactory(bearer);
 
       let parsedMetadata: Record<string, unknown> | undefined;
       if (opts.metadata) {
@@ -45,7 +47,14 @@ export function makeSendCommand(): Command {
           console.log(JSON.stringify(response, null, 2));
         }
       } catch (err) {
-        console.error(`Error: ${formatA2AError(err)}`);
+        const msg = formatA2AError(err);
+        if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+          const origin = new URL(url).origin;
+          console.error(`Error: Authentication failed (401 Unauthorized).`);
+          console.error(`To connect, run:\n  a2a-wallet a2a auth ${origin}`);
+        } else {
+          console.error(`Error: ${msg}`);
+        }
         process.exit(1);
       }
     });

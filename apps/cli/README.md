@@ -117,6 +117,9 @@ On success, a `PaymentPayload` JSON is printed to stdout.
 ```
 a2a-wallet
 ├── a2a
+│   ├── auth               Authenticate with an A2A service via device flow
+│   ├── list               List all saved A2A service connections
+│   ├── disconnect         Remove a saved A2A service connection
 │   ├── card               Fetch and display an agent's AgentCard
 │   ├── send               Send a message to an agent and print the response
 │   ├── stream             Send a message and stream the response via SSE
@@ -130,7 +133,7 @@ a2a-wallet
 │   │   ├── start          Start device session and print login URL (agent step 1)
 │   │   └── poll           Poll for login completion and save token (agent step 2)
 │   └── logout             Remove the saved token
-├── siwe
+├── siwe [DEPRECATED]
 │   ├── prepare            Generate an EIP-4361 SIWE message
 │   ├── encode             Encode message + signature into a base64url token
 │   ├── decode             Decode and inspect a SIWE token
@@ -141,7 +144,6 @@ a2a-wallet
 │   └── get [key]          Show config values
 ├── whoami                 Show authenticated user info
 ├── balance                Show wallet balance
-├── sign                   Sign an arbitrary message with your wallet
 ├── faucet                 Request testnet tokens
 └── update                 Update a2a-wallet to the latest version
 ```
@@ -180,14 +182,14 @@ Starts a device login session on the server and prints the login URL, then exits
 ### `auth device poll`
 
 ```bash
-a2a-wallet auth device poll --nonce <nonce> [--url <url>]
+a2a-wallet auth device poll --device-code <device_code> [--url <url>]
 ```
 
 Polls the server for login completion. Saves the token once the user completes login. Use this as **step 2** of the agent login flow after showing the URL to the user.
 
 | Option | Description |
 |--------|-------------|
-| `--nonce <nonce>` | Nonce returned by `auth device start` (required) |
+| `--device-code <device_code>` | Nonce returned by `auth device start` (required) |
 | `--url <url>` | Override the web app URL for this request |
 
 ### `auth logout`
@@ -213,21 +215,6 @@ Settings are stored in `~/.a2a-wallet/config.json`.
 a2a-wallet config get          # Show all settings (token is masked)
 a2a-wallet config get url      # Show a specific value
 ```
-
-### `sign`
-
-Signs an arbitrary message with your wallet.
-
-```bash
-a2a-wallet sign --message <string> [options]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--message <string>` | Message to sign (required) |
-| `--token <jwt>` | One-time token for this request only |
-| `--url <url>` | Web app URL for this request only |
-| `--json` | Output pure JSON to stdout |
 
 ### `x402 sign`
 
@@ -278,6 +265,8 @@ a2a-wallet x402 sign [options]
   }
 }
 ```
+
+> **Deprecated:** The `siwe` command is deprecated and will be removed in a future version. SIWE tokens are signed by this CLI's embedded wallet, which means the authenticated identity is locked to this CLI instance. Other clients (Web UI, mobile app, etc.) holding a different wallet cannot prove the same identity — making multi-client scenarios impossible.
 
 ### `siwe prepare`
 
@@ -410,6 +399,58 @@ a2a-wallet whoami [--token <jwt>] [--url <url>] [--json]
 | `--token <jwt>` | One-time token for this request only |
 | `--url <url>` | Web app URL for this request only |
 | `--json` | Output pure JSON to stdout |
+
+### `a2a auth`
+
+Authenticates with an external A2A service via OAuth2 device flow and saves the connection credentials locally.
+
+**Step 1** — start the flow and open the browser:
+
+```bash
+a2a-wallet a2a auth <url>
+# → To authenticate, open the following URL in a browser:
+# →   http://example.com/a2a/login?user_code=WDJB-MJHT
+# →
+# → After completing login, run:
+# →   a2a-wallet a2a auth <url> --user-code WDJB-MJHT
+```
+
+**Step 2** — after completing login in the browser, pass the user code:
+
+```bash
+a2a-wallet a2a auth <url> --user-code WDJB-MJHT
+# → Connected to http://example.com
+```
+
+The `user_code` is shown in the browser URL. The `device_code` is stored in `~/.a2a-wallet/pending-auths.json` and never exposed to the user. It is looked up via `user_code` and deleted after use. The saved credentials are used automatically by `a2a send` and `a2a stream` for that service URL.
+
+| Option | Description |
+|--------|-------------|
+| `--user-code <code>` | Poll for completion using the user code shown in the browser (e.g. `WDJB-MJHT`) |
+
+### `a2a list`
+
+Lists all saved A2A service connections.
+
+```bash
+a2a-wallet a2a list
+```
+
+**Output example:**
+
+```
+service                   connected_at
+http://localhost:3000     2026-03-12 08:43:00
+https://my-agent.example.com  2026-03-10 14:22:11
+```
+
+### `a2a disconnect`
+
+Removes a saved A2A service connection.
+
+```bash
+a2a-wallet a2a disconnect <url>
+```
 
 ### `a2a card`
 

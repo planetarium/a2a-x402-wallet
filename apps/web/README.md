@@ -239,6 +239,83 @@ Signs x402 `PaymentRequirements` and returns a `PaymentPayload`. Uses ERC-3009 T
 
 ---
 
+## A2A Agent
+
+The web app exposes itself as an A2A agent, allowing CLI tools and other agents to connect and interact with it. External clients can discover the agent's capabilities via its agent card, authenticate using the A2A device flow, and send A2A messages using the obtained token.
+
+- **Agent card**: `GET /.well-known/agent.json` — returns the AgentCard declaring the device flow security scheme
+- **A2A endpoint**: `POST /api/a2a` — A2A JSON-RPC endpoint (requires Bearer token obtained via A2A device flow)
+
+### A2A Device Flow
+
+A flow that lets an external CLI or agent authenticate with this web app as an A2A service. Follows [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628) (OAuth 2.0 Device Authorization Grant).
+
+#### `POST /a2a/device/start`
+
+Creates an A2A device session for external clients to authenticate.
+
+**Request** (`application/x-www-form-urlencoded`):
+```
+client_id=a2a-wallet
+```
+
+**Response**:
+```json
+{
+  "device_code": "uuid-v4",
+  "user_code": "WDJB-MJHT",
+  "verification_uri": "https://…/a2a/login",
+  "verification_uri_complete": "https://…/a2a/login?user_code=WDJB-MJHT",
+  "expires_in": 300,
+  "interval": 5
+}
+```
+
+---
+
+#### `POST /a2a/device/token`
+
+Polls for login completion (RFC 8628 token endpoint).
+
+**Request** (`application/x-www-form-urlencoded`):
+```
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code
+&device_code=uuid-v4
+&client_id=a2a-wallet
+```
+
+**Response (pending)** — HTTP 400:
+```json
+{ "error": "authorization_pending" }
+```
+
+**Response (complete)** — HTTP 200:
+```json
+{ "access_token": "sk-…", "token_type": "bearer" }
+```
+
+**Response (expired)** — HTTP 400:
+```json
+{ "error": "expired_token" }
+```
+
+**Other errors** — HTTP 400: `slow_down`, `access_denied`, `invalid_request`
+
+---
+
+#### `GET /a2a/login?user_code=<user_code>`
+
+Login page shown in the browser when the user opens the `verification_uri_complete` URL.
+
+---
+
+To connect using the CLI:
+```bash
+a2a-wallet a2a auth https://your-app.example.com
+```
+
+---
+
 ## Setup
 
 ### 1. Install dependencies

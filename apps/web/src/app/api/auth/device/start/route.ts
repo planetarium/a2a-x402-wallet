@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
   const nonce = randomUUID();
   await deviceStore.create(nonce, TTL_MS);
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+  const host = req.headers.get('x-forwarded-host') ?? req.nextUrl.host;
+  const proto = req.headers.get('x-forwarded-proto') ?? req.nextUrl.protocol.replace(':', '');
+  const baseUrl = process.env.APP_URL ?? `${proto}://${host}`;
   const loginUrl = `${baseUrl}/device-login?nonce=${encodeURIComponent(nonce)}`;
 
   return NextResponse.json({ nonce, loginUrl });

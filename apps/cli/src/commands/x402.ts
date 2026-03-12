@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getEffectiveConfig } from '../config.js';
+import { getEffectiveConfig } from '../store/config.js';
 import { callX402Sign, exitNotLoggedIn } from '../api.js';
 
 export function makeX402Command(): Command {
