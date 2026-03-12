@@ -8,8 +8,6 @@ import { makeX402Command } from './commands/x402.js';
 import { makeWhoamiCommand } from './commands/whoami.js';
 import { makeUpdateCommand } from './commands/update.js';
 import { makeA2ACommand } from './commands/a2a.js';
-import { makeConnectCommand } from './commands/connect.js';
-import { makeConnectionsCommand } from './commands/connections.js';
 import { makeSiweCommand } from './commands/siwe/index.js';
 import { makeBalanceCommand } from './commands/balance.js';
 import { makeFaucetCommand } from './commands/faucet.js';
@@ -20,8 +18,6 @@ const program = new Command()
   .description('CLI for signing x402 payment payloads via a2a-wallet')
   .version(pkg.version);
 
-program.addCommand(makeConnectCommand());
-program.addCommand(makeConnectionsCommand());
 program.addCommand(makeA2ACommand());
 program.addCommand(makeX402Command());
 program.addCommand(makeAuthCommand());

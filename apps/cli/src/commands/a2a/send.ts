@@ -47,7 +47,14 @@ export function makeSendCommand(): Command {
           console.log(JSON.stringify(response, null, 2));
         }
       } catch (err) {
-        console.error(`Error: ${formatA2AError(err)}`);
+        const msg = formatA2AError(err);
+        if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+          const origin = new URL(url).origin;
+          console.error(`Error: Authentication failed (401 Unauthorized).`);
+          console.error(`To connect, run:\n  a2a-wallet a2a auth ${origin}`);
+        } else {
+          console.error(`Error: ${msg}`);
+        }
         process.exit(1);
       }
     });
