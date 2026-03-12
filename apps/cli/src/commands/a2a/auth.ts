@@ -1,17 +1,20 @@
 import { Command } from 'commander';
-import { setConnection } from '../../config.js';
+import { setConnection } from '../../store/config.js';
 import { fetchAgentCard, findDeviceCodeFlow } from '../../services/a2a.js';
+import { savePendingAuth, getPendingAuth, deletePendingAuth } from '../../store/pending-auths.js';
+
+const DEVICE_CODE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';
 
 export function makeAuthCommand(): Command {
   return new Command('auth')
     .description(
-      'Authenticate with an A2A service via device flow and save the API Key.\n\n' +
-      'Default: starts the device flow, prints the login URL and a resume command, then exits.\n' +
-      'Use --nonce <nonce> to poll once after the user has completed login.',
+      'Authenticate with an A2A service via device flow (RFC 8628) and save the access token.\n\n' +
+      'First run: starts the device flow and prints the login URL.\n' +
+      'Second run (--user-code): polls for completion using the code shown in the browser.',
     )
     .argument('<url>', 'A2A service base URL (e.g. https://external-service.com)')
-    .option('--nonce <nonce>', 'Poll once for a previously started device flow')
-    .action(async (url: string, opts: { nonce?: string }) => {
+    .option('--user-code <code>', 'Poll for a previously started device flow using the user code (e.g. WDJB-MJHT)')
+    .action(async (url: string, opts: { userCode?: string }) => {
       const origin = new URL(url).origin;
 
       // 1. Fetch agent card
@@ -27,46 +30,70 @@ export function makeAuthCommand(): Command {
         process.exit(1);
       }
 
-      // --- RESUME TRACK (--nonce) ---
-      // Poll once to check if the user has completed login.
-      if (opts.nonce) {
+      // --- POLL TRACK (--user-code) ---
+      if (opts.userCode) {
+        const pending = getPendingAuth(opts.userCode);
+        if (!pending) {
+          console.error('Error: No pending auth found for that user code (it may have expired).');
+          console.error('Run the command without --user-code to start a new flow.');
+          process.exit(1);
+        }
+
         console.log('Checking authentication status...');
-        const pollRes = await fetch(
-          `${flow.tokenUrl}?code=${encodeURIComponent(opts.nonce)}`,
-        ).catch(() => null);
+
+        const body = new URLSearchParams({
+          grant_type:  DEVICE_CODE_GRANT,
+          device_code: pending.deviceCode,
+          client_id:   'a2a-wallet',
+        });
+
+        const pollRes = await fetch(pending.tokenUrl, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body:    body.toString(),
+        }).catch(() => null);
 
         if (!pollRes) {
-          console.error('Error: Could not reach the poll endpoint.');
+          console.error('Error: Could not reach the token endpoint.');
           process.exit(1);
         }
 
-        if (pollRes.status === 404) {
-          console.error('Error: Device code expired or not found. Please run `a2a auth` again.');
+        const data = await pollRes.json().catch(() => ({})) as Record<string, string>;
+        const error = pollRes.ok ? undefined : (data.error ?? `HTTP ${pollRes.status}`);
+
+        if (error === 'expired_token') {
+          deletePendingAuth(opts.userCode);
+          console.error('Error: Device code expired. Please run the command again to restart.');
           process.exit(1);
         }
 
-        if (!pollRes.ok) {
-          const body = await pollRes.json().catch(() => ({})) as { error?: string };
-          console.error(`Error: poll failed — ${body?.error ?? `HTTP ${pollRes.status}`}`);
+        if (error === 'access_denied') {
+          deletePendingAuth(opts.userCode);
+          console.error('Error: Authorization was denied.');
           process.exit(1);
         }
 
-        const data = await pollRes.json() as { status: string; api_key?: string };
-
-        if (data.status === 'expired') {
-          console.error('Error: Device code expired. Please run `a2a auth` again.');
-          process.exit(1);
-        }
-
-        if (data.status === 'pending') {
+        if (error === 'authorization_pending') {
           console.log('Login is not yet complete. After finishing login in your browser, run:');
-          console.log(`  a2a-wallet a2a auth ${url} --nonce ${opts.nonce}`);
+          console.log(`  a2a-wallet a2a auth ${url} --user-code ${opts.userCode}`);
           process.exit(0);
         }
 
-        if (data.status === 'complete' && data.api_key) {
+        if (error === 'slow_down') {
+          console.log('Polling too fast. Wait a moment, then run:');
+          console.log(`  a2a-wallet a2a auth ${url} --user-code ${opts.userCode}`);
+          process.exit(0);
+        }
+
+        if (error) {
+          console.error(`Error: poll failed — ${error}`);
+          process.exit(1);
+        }
+
+        if (data.access_token) {
+          deletePendingAuth(opts.userCode);
           setConnection(origin, {
-            apiKey: data.api_key,
+            apiKey:      data.access_token,
             connectedAt: new Date().toISOString(),
           });
           console.log(`Connected to ${origin}`);
@@ -77,11 +104,11 @@ export function makeAuthCommand(): Command {
         process.exit(1);
       }
 
-      // 3. Start device flow
+      // --- START TRACK ---
       const startRes = await fetch(flow.deviceAuthorizationUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    'client_id=a2a-wallet',
       }).catch(() => null);
 
       if (!startRes?.ok) {
@@ -91,23 +118,32 @@ export function makeAuthCommand(): Command {
       }
 
       const start = await startRes.json() as {
-        device_code: string;
-        login_url: string;
-        expires_in?: number;
-        interval?: number;
+        device_code:               string;
+        user_code:                 string;
+        verification_uri:          string;
+        verification_uri_complete?: string;
+        expires_in?:               number;
+        interval?:                 number;
       };
 
-      if (!start.device_code || !start.login_url) {
+      if (!start.device_code || !start.user_code || !start.verification_uri) {
         console.error('Error: Invalid response from device/start.');
         process.exit(1);
       }
 
-      // --- DEFAULT TRACK ---
-      // Print the login URL and resume command, then exit immediately.
+      // Save device_code keyed by user_code — device_code never shown to user
+      const expiresAt = new Date(Date.now() + (start.expires_in ?? 300) * 1000).toISOString();
+      savePendingAuth(start.user_code, {
+        deviceCode: start.device_code,
+        tokenUrl:   flow.tokenUrl,
+        expiresAt,
+      });
+
+      const loginUrl = start.verification_uri_complete ?? start.verification_uri;
       console.log('To authenticate, open the following URL in a browser:');
-      console.log(`  ${start.login_url}`);
+      console.log(`  ${loginUrl}`);
       console.log('');
       console.log('After completing login, run:');
-      console.log(`  a2a-wallet a2a auth ${url} --nonce ${start.device_code}`);
+      console.log(`  a2a-wallet a2a auth ${url} --user-code ${start.user_code}`);
     });
 }

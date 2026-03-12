@@ -1,25 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { a2aDeviceStore } from '@/lib/a2a-device-store';
+import { a2aDeviceStore, generateUserCode } from '@/lib/a2a-device-store';
 import { a2aStartLimiter, getClientIp, tooManyRequests } from '@/lib/rate-limit';
 
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
-const INTERVAL_S = 3;
+const INTERVAL_S = 5;
 
 export async function POST(req: NextRequest) {
   const { allowed, resetAt } = a2aStartLimiter.check(getClientIp(req));
   if (!allowed) return tooManyRequests(resetAt);
 
-  const code = randomUUID();
-  await a2aDeviceStore.create(code, TTL_MS);
+  const deviceCode = randomUUID();
+  const userCode = generateUserCode();
+  await a2aDeviceStore.create(deviceCode, userCode, TTL_MS);
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `${req.nextUrl.protocol}//${req.nextUrl.host}`;
-  const loginUrl = `${baseUrl}/a2a/login?code=${encodeURIComponent(code)}`;
+  const verificationUri = `${baseUrl}/a2a/login`;
+  const verificationUriComplete = `${verificationUri}?user_code=${encodeURIComponent(userCode)}`;
 
   return NextResponse.json({
-    device_code: code,
-    login_url:   loginUrl,
-    expires_in:  TTL_MS / 1000,
-    interval:    INTERVAL_S,
+    device_code:              deviceCode,
+    user_code:                userCode,
+    verification_uri:         verificationUri,
+    verification_uri_complete: verificationUriComplete,
+    expires_in:               TTL_MS / 1000,
+    interval:                 INTERVAL_S,
   });
 }

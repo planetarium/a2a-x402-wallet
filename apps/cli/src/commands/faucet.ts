@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { getEffectiveConfig } from '../config.js';
+import { getEffectiveConfig } from '../store/config.js';
 import { tryOpenBrowser } from '../utils.js';
 
 export function makeFaucetCommand(): Command {

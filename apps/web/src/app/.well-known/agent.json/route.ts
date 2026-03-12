@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
           flows: {
             deviceCode: {
               deviceAuthorizationUrl: `${baseUrl}/a2a/device/start`,
-              tokenUrl:               `${baseUrl}/a2a/device/poll`,
+              tokenUrl:               `${baseUrl}/a2a/device/token`,
               scopes:                 {},
             },
           },

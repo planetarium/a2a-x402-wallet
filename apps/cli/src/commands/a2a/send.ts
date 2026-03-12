@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { buildClientFactory, formatA2AError } from './client.js';
-import { getConnection } from '../../config.js';
+import { getConnection } from '../../store/config.js';
 
 export function makeSendCommand(): Command {
   return new Command('send')

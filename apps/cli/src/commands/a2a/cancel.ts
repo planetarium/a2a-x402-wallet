@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { buildClientFactory, formatA2AError } from './client.js';
-import { getConnection } from '../../config.js';
+import { getConnection } from '../../store/config.js';
 
 export function makeCancelCommand(): Command {
   return new Command('cancel')

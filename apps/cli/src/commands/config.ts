@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { readConfig, writeConfig, DEFAULT_URL } from '../config.js';
+import { readConfig, writeConfig, DEFAULT_URL } from '../store/config.js';
 
 export function makeConfigCommand(): Command {
   const cmd = new Command('config').description('Read and write CLI configuration stored in ~/.a2a-wallet/config.json (set, get)');

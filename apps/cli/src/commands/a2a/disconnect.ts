@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { removeConnection } from '../../config.js';
+import { removeConnection } from '../../store/config.js';
 
 export function makeDisconnectCommand(): Command {
   return new Command('disconnect')

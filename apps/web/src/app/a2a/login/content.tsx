@@ -7,7 +7,7 @@ import { CenteredShell, Logo, Card, BtnPrimary, BtnGhost } from '@/components/ui
 
 export function A2ALoginContent() {
   const searchParams = useSearchParams();
-  const code = searchParams.get('code');
+  const code = searchParams.get('user_code');
   const { ready, authenticated, login, logout, getAccessToken } = usePrivy();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export function A2ALoginContent() {
       const res = await fetch('/a2a/device/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, privyToken }),
+        body: JSON.stringify({ user_code: code, privyToken }),
       });
 
       if (!res.ok) {
@@ -44,7 +44,7 @@ export function A2ALoginContent() {
         <Card>
           <p className="text-sm text-red-400">
             Missing session code. Please run{' '}
-            <code className="font-mono text-xs bg-zinc-800 px-1 rounded">a2a-wallet connect</code>{' '}
+            <code className="font-mono text-xs bg-zinc-800 px-1 rounded">a2a-wallet a2a auth</code>{' '}
             again.
           </p>
         </Card>

@@ -10,7 +10,7 @@
 |---------|-------------|
 | **A2A Standard** | Full support for the Agent-to-Agent (A2A) protocol — enabling seamless interoperability between agents and services |
 | **X402 Payments** | Inter-agent payment signing via the x402 HTTP payment protocol — agents can pay other agents or services autonomously |
-| **SIWE Authentication** | Sign-In With Ethereum (SIWE) support — cryptographically proves agent identity without passwords |
+| **A2A Agent Connectivity** | Connect to external A2A agents via device flow OAuth2 — authenticate once and interact seamlessly across sessions |
 | **CLI as Agent Tool** | The `a2a-wallet` CLI is designed to be used directly by AI agents as a tool, enabling fully automated signing workflows |
 
 Users connect their wallet via the web app and perform x402 payment signing through the CLI. AI Agents can use the CLI as a Tool to automatically generate signed `PaymentPayload` objects whenever x402 payment is required.
@@ -84,6 +84,20 @@ User (web login)
 2. Issue accessToken (JWT) and save it to the CLI
 3. Call `a2a-wallet x402 sign` to request x402 signing
 4. Web app performs EIP-712 signing via the user's wallet and returns a `PaymentPayload`
+
+## Connecting to A2A Agents
+
+To authenticate with an A2A agent and send messages:
+
+```bash
+# 1. Authenticate (device flow)
+a2a-wallet a2a auth https://my-agent.example.com
+# → open URL in browser (user_code is shown in URL), then:
+a2a-wallet a2a auth https://my-agent.example.com --user-code WDJB-MJHT
+
+# 2. Send a message
+a2a-wallet a2a send https://my-agent.example.com "Hello"
+```
 
 ## Packages
 

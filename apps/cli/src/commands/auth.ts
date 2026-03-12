@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { createServer } from 'http';
-import { getEffectiveConfig, readConfig, writeConfig } from '../config.js';
+import { getEffectiveConfig, readConfig, writeConfig } from '../store/config.js';
 import { tryOpenBrowser } from '../utils.js';
 
 function logTokenSaved(token: string): void {

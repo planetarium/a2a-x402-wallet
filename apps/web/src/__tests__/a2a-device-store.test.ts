@@ -62,11 +62,11 @@ describe('a2aDeviceStore.create', () => {
     const chain = makeMockDb();
     vi.mocked(db.insert).mockReturnValue(chain as never);
 
-    await a2aDeviceStore.create('test-code', 60_000);
+    await a2aDeviceStore.create('test-code', 'WXYZ-ABCD', 60_000);
 
     expect(db.insert).toHaveBeenCalledWith('a2aDeviceCodes');
     expect(chain.values).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 'test-code' }),
+      expect.objectContaining({ code: 'test-code', userCode: 'WXYZ-ABCD' }),
     );
   });
 });

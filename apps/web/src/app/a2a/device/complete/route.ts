@@ -17,13 +17,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { code, privyToken } = await req.json() as { code?: string; privyToken?: string };
+  const { user_code, privyToken } = await req.json() as { user_code?: string; privyToken?: string };
 
-  if (!code || !privyToken) {
+  if (!user_code || !privyToken) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 
-  const entry = await a2aDeviceStore.get(code);
+  const entry = await a2aDeviceStore.getByUserCode(user_code);
   if (!entry) {
     return NextResponse.json({ error: 'expired_code' }, { status: 400 });
   }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = generateApiKey();
-  const ok = await a2aDeviceStore.complete(code, apiKey);
+  const ok = await a2aDeviceStore.completeByUserCode(user_code, apiKey);
   if (!ok) {
     return NextResponse.json({ error: 'expired_code' }, { status: 400 });
   }

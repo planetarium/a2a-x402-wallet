@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { recoverMessageAddress, getAddress, isHex, size } from 'viem';
-import { getEffectiveConfig } from '../../config.js';
+import { getEffectiveConfig } from '../../store/config.js';
 import { callSign, exitNotLoggedIn } from '../../api.js';
 import {
   makeSiweMessage,

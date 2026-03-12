@@ -3,7 +3,7 @@ import { createPublicClient, http, formatUnits } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 import type { Chain } from 'viem';
 import { NETWORKS, USDC_DECIMALS } from '@a2a-x402-wallet/x402';
-import { getEffectiveConfig } from '../config.js';
+import { getEffectiveConfig } from '../store/config.js';
 import { callWhoami, exitNotLoggedIn } from '../api.js';
 
 const NETWORK_CONFIG: Record<string, { chain: Chain; usdc: `0x${string}` }> = {
