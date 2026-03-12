@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { buildClientFactory, formatA2AError } from './client.js';
+import { getConnection } from '../../config.js';
 
 function makeTasksGetCommand(): Command {
   return new Command('get')
@@ -10,7 +11,8 @@ function makeTasksGetCommand(): Command {
     .option('--bearer <token>', 'Bearer token for agent authentication')
     .option('--json', 'Output raw JSON (single line)')
     .action(async (url: string, taskId: string, opts: { history: string; bearer?: string; json?: boolean }) => {
-      const factory = buildClientFactory(opts.bearer);
+      const bearer = opts.bearer ?? getConnection(url)?.apiKey;
+      const factory = buildClientFactory(bearer);
       try {
         const client = await factory.createFromUrl(url);
         const task = await client.getTask({

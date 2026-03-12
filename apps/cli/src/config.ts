@@ -7,9 +7,15 @@ const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 export const DEFAULT_URL = 'https://a2a-x402-wallet-web.fly.dev';
 
+export interface Connection {
+  apiKey: string;
+  connectedAt: string; // ISO 8601 datetime
+}
+
 export interface Config {
   url?: string;
   token?: string;
+  connections?: Record<string, Connection>;
 }
 
 export function readConfig(): Config {
@@ -32,6 +38,34 @@ export function writeConfig(config: Config): void {
 export interface EffectiveConfig {
   url: string;
   token: string;
+}
+
+export function getConnection(url: string): Connection | undefined {
+  const origin = new URL(url).origin;
+  return readConfig().connections?.[origin];
+}
+
+export function setConnection(url: string, connection: Connection): void {
+  const origin = new URL(url).origin;
+  const existing = readConfig();
+  writeConfig({
+    ...existing,
+    connections: { ...existing.connections, [origin]: connection },
+  });
+}
+
+export function removeConnection(url: string): boolean {
+  const origin = new URL(url).origin;
+  const existing = readConfig();
+  if (!existing.connections?.[origin]) return false;
+  const { [origin]: _, ...rest } = existing.connections;
+  writeConfig({ ...existing, connections: rest });
+  return true;
+}
+
+export function listConnections(): Array<{ origin: string; connection: Connection }> {
+  const connections = readConfig().connections ?? {};
+  return Object.entries(connections).map(([origin, connection]) => ({ origin, connection }));
 }
 
 export function getEffectiveConfig(overrides?: Partial<Config>): EffectiveConfig {
