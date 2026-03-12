@@ -48,6 +48,14 @@ async function gql<T = unknown>(
   return res.json() as Promise<{ data?: T; errors?: { message: string }[] }>;
 }
 
+const USER_SETTINGS_QUERY = `
+  query { userSettings { jwtExpiresIn jwtExpiresInDefault } }
+`;
+
+const SET_JWT_EXPIRES_IN_MUTATION = `
+  mutation SetJwtExpiresIn($value: String) { setJwtExpiresIn(value: $value) { jwtExpiresIn jwtExpiresInDefault } }
+`;
+
 const PAYMENT_LIMITS_QUERY = `
   query { paymentLimits { network asset maxAmount isDefault } }
 `;
@@ -204,6 +212,9 @@ export default function SettingsPage() {
         )}
       </Section>
 
+      {/* JWT Expiry */}
+      <JwtExpirySection getAccessToken={getAccessToken} />
+
       {/* Payment Limits */}
       <PaymentLimitsSection getAccessToken={getAccessToken} />
 
@@ -285,6 +296,138 @@ export default function SettingsPage() {
         <BtnGhost onClick={logout}>Sign out</BtnGhost>
       </div>
     </Shell>
+  );
+}
+
+// ── JWT Expiry Section ────────────────────────────────────────────────────────
+
+function JwtExpirySection({ getAccessToken }: { getAccessToken: () => Promise<string | null> }) {
+  const [current, setCurrent]         = useState<string | null | undefined>(undefined); // undefined = not yet loaded
+  const [serverDefault, setServerDefault] = useState<string | null>(null);
+  const [loading, setLoading]         = useState(true);
+  const [fetchError, setFetchError]   = useState<string | null>(null);
+
+  const [inputValue, setInputValue] = useState('');
+  const [saving, setSaving]         = useState(false);
+  const [saveError, setSaveError]   = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const fetchSetting = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      const result = await gql<{ userSettings: { jwtExpiresIn: string | null; jwtExpiresInDefault: string } | null }>(
+        USER_SETTINGS_QUERY, {}, token,
+      );
+      if (result.errors?.length) throw new Error(result.errors[0].message);
+      setCurrent(result.data?.userSettings?.jwtExpiresIn ?? null);
+      setServerDefault(result.data?.userSettings?.jwtExpiresInDefault ?? null);
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [getAccessToken]);
+
+  useEffect(() => { fetchSetting(); }, [fetchSetting]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      const value = inputValue.trim() || null;
+      const result = await gql<{ setJwtExpiresIn: { jwtExpiresIn: string | null; jwtExpiresInDefault: string } }>(
+        SET_JWT_EXPIRES_IN_MUTATION, { value }, token,
+      );
+      if (result.errors?.length) throw new Error(result.errors[0].message);
+      setCurrent(result.data?.setJwtExpiresIn.jwtExpiresIn ?? null);
+      setServerDefault(result.data?.setJwtExpiresIn.jwtExpiresInDefault ?? null);
+      setInputValue('');
+      setSaveSuccess(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleClear() {
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const token = await getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      const result = await gql<{ setJwtExpiresIn: { jwtExpiresIn: string | null; jwtExpiresInDefault: string } }>(
+        SET_JWT_EXPIRES_IN_MUTATION, { value: null }, token,
+      );
+      if (result.errors?.length) throw new Error(result.errors[0].message);
+      setCurrent(null);
+      setServerDefault(result.data?.setJwtExpiresIn.jwtExpiresInDefault ?? null);
+      setInputValue('');
+      setSaveSuccess(true);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Section title="CLI Token Expiry">
+      <Row label="Current setting">
+        {loading ? (
+          <span className="text-xs text-zinc-500 animate-pulse">Loading…</span>
+        ) : fetchError ? (
+          <span className="text-xs text-red-400">{fetchError}</span>
+        ) : current ? (
+          <span className="text-sm text-zinc-300 font-mono">{current}</span>
+        ) : (
+          <span className="text-xs text-zinc-500">
+            Using server default{serverDefault ? <> (<span className="font-mono">{serverDefault}</span>)</> : ''}
+          </span>
+        )}
+      </Row>
+
+      <form onSubmit={handleSave} className="space-y-2 pt-1">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="e.g. 5m, 1h, 24h, 7d"
+            value={inputValue}
+            onChange={(e) => { setInputValue(e.target.value); setSaveSuccess(false); }}
+            disabled={saving}
+            className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800/60 px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors disabled:opacity-50"
+          />
+          <BtnPrimary type="submit" disabled={saving || !inputValue.trim()}>
+            {saving ? 'Saving…' : 'Save'}
+          </BtnPrimary>
+          {current && (
+            <BtnSecondary type="button" onClick={handleClear} disabled={saving}>
+              Clear
+            </BtnSecondary>
+          )}
+        </div>
+
+        <p className="text-[11px] text-zinc-600 leading-relaxed">
+          Accepted formats: <span className="font-mono text-zinc-500">5m</span>,{' '}
+          <span className="font-mono text-zinc-500">30m</span>,{' '}
+          <span className="font-mono text-zinc-500">1h</span>,{' '}
+          <span className="font-mono text-zinc-500">24h</span>,{' '}
+          <span className="font-mono text-zinc-500">7d</span>.
+          Leave empty and click Save, or use Clear, to revert to the server default.
+        </p>
+
+        {saveError && <p className="text-xs text-red-400">{saveError}</p>}
+        {saveSuccess && <p className="text-xs text-emerald-400">Saved.</p>}
+      </form>
+    </Section>
   );
 }
 
