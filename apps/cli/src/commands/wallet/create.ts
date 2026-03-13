@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { LocalWalletProvider } from '../../wallet/local.js';
-import { readConfig, writeConfig } from '../../store/config.js';
+import { readConfig, setDefaultWallet } from '../../store/config.js';
 import { resolveWalletNameToCreate } from '../../wallet/name.js';
 
 export function makeWalletCreateCommand(): Command {
@@ -19,7 +19,7 @@ export function makeWalletCreateCommand(): Command {
 
         const config = readConfig();
         if (!config.defaultWallet) {
-          writeConfig({ ...config, defaultWallet: wallet.name });
+          setDefaultWallet({ type: 'local', name: wallet.name });
           console.log('Wallet created successfully. (set as default)');
         } else {
           console.log('Wallet created successfully.');

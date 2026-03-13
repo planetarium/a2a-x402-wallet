@@ -12,11 +12,17 @@ export interface Connection {
   connectedAt: string; // ISO 8601 datetime
 }
 
+/** Identifies which wallet to use for signing operations. */
+export type WalletRef =
+  | { type: 'local'; name: string }
+  | { type: 'custodial' };
+
 export interface Config {
   url?: string;
   token?: string;
   connections?: Record<string, Connection>;
-  defaultWallet?: string;
+  /** The default wallet used when no --wallet or --token flag is provided. */
+  defaultWallet?: WalletRef;
 }
 
 export function readConfig(): Config {
@@ -39,6 +45,11 @@ export function writeConfig(config: Config): void {
 export interface EffectiveConfig {
   url: string;
   token: string;
+}
+
+export function setDefaultWallet(ref: WalletRef): void {
+  const existing = readConfig();
+  writeConfig({ ...existing, defaultWallet: ref });
 }
 
 export function getConnection(url: string): Connection | undefined {

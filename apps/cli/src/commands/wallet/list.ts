@@ -12,6 +12,8 @@ export function makeWalletListCommand(): Command {
       try {
         const wallets = await provider.list();
         const defaultWallet = readConfig().defaultWallet;
+        const isDefaultLocal = (name: string) =>
+          defaultWallet?.type === 'local' && defaultWallet.name === name;
 
         if (opts.json) {
           const output = wallets.map((w) => ({
@@ -19,7 +21,7 @@ export function makeWalletListCommand(): Command {
             address: w.address,
             type: w.type,
             ...(w.derivationPath ? { derivationPath: w.derivationPath } : {}),
-            default: w.name === defaultWallet,
+            default: isDefaultLocal(w.name),
             createdAt: w.createdAt,
           }));
           console.log(JSON.stringify(output, null, 2));
@@ -46,7 +48,7 @@ export function makeWalletListCommand(): Command {
         console.log(header);
 
         for (const w of wallets) {
-          const isDefault = w.name === defaultWallet ? '*' : ' ';
+          const isDefault = isDefaultLocal(w.name) ? '*' : ' ';
           const suffix = w.type === 'mnemonic' && w.derivationPath ? `  (${w.derivationPath})` : '';
           console.log(
             `${isDefault} ${w.name.padEnd(nameWidth)}  ${w.address.padEnd(addrWidth)}  ${w.type.padEnd(typeWidth)}  ${formatDateTime(w.createdAt)}${suffix}`,
