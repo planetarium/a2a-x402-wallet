@@ -16,6 +16,7 @@ export interface Config {
   url?: string;
   token?: string;
   connections?: Record<string, Connection>;
+  defaultWallet?: string;
 }
 
 export function readConfig(): Config {

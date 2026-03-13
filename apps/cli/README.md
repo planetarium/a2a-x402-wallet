@@ -139,6 +139,12 @@ a2a-wallet
 │   ├── decode             Decode and inspect a SIWE token
 │   ├── verify             Verify token signature and expiration
 │   └── auth               All-in-one: prepare → sign → encode
+├── wallet
+│   ├── create [name]      Create a new mnemonic-based local wallet
+│   ├── import [name]      Import a wallet from a private key
+│   ├── list               List all local wallets
+│   ├── use <name>         Set the default wallet
+│   └── export             Show instructions for moving wallets to another machine
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
 │   └── get [key]          Show config values
@@ -385,6 +391,82 @@ a2a-wallet siwe auth \
 | `--json` | N | — | Output pure JSON to stdout |
 
 The wallet address is resolved automatically via `whoami`. The resulting base64url token can be presented to any service that supports SIWE authentication.
+
+### `wallet create`
+
+Creates a new mnemonic-based local wallet.
+
+```bash
+a2a-wallet wallet create [name] [--path <derivation-path>]
+```
+
+- `name` is auto-generated (`wallet-1`, `wallet-2`, …) if omitted.
+- The first wallet created is automatically set as the default.
+- If no mnemonic wallet exists yet, a new random mnemonic is generated.
+- If a mnemonic wallet already exists, the same mnemonic is reused and the next address index is derived automatically.
+- `--path` overrides automatic path selection.
+
+| Option | Description |
+|--------|-------------|
+| `--path <path>` | BIP-44 derivation path (e.g. `m/44'/60'/0'/0/2`) |
+
+```
+$ a2a-wallet wallet create
+Wallet created successfully. (set as default)
+  Name:    wallet-1
+  Address: 0x...
+  Path:    m/44'/60'/0'/0/0
+```
+
+### `wallet import`
+
+Imports a wallet from a hex private key. Stored as `type: private-key` — no mnemonic is associated.
+
+```bash
+a2a-wallet wallet import [name] --private-key <key>
+```
+
+- `name` is auto-generated if omitted.
+- The first wallet overall is automatically set as the default.
+
+> **Security note**: passing a private key as a CLI option leaves it in shell history. Consider clearing your history after use.
+
+| Option | Description |
+|--------|-------------|
+| `--private-key <key>` | Hex private key (`0x` prefix optional) — required |
+
+### `wallet list`
+
+Lists all local wallets. The default wallet is marked with `*`.
+
+```bash
+a2a-wallet wallet list [--json]
+```
+
+```
+  NAME      ADDRESS                                     TYPE         CREATED AT
+* wallet-1  0x...                                       mnemonic     2026-03-13 09:00:00  (m/44'/60'/0'/0/0)
+  wallet-2  0x...                                       mnemonic     2026-03-13 09:00:01  (m/44'/60'/0'/0/1)
+  my-key    0x...                                       private-key  2026-03-13 09:00:02
+```
+
+### `wallet use`
+
+Sets the named wallet as the default. Saves `defaultWallet` to `~/.a2a-wallet/config.json`.
+
+```bash
+a2a-wallet wallet use <name>
+```
+
+### `wallet export`
+
+Exporting private keys directly is not supported. Prints the file paths to copy manually when moving wallets to another machine.
+
+```bash
+a2a-wallet wallet export
+```
+
+---
 
 ### `whoami`
 

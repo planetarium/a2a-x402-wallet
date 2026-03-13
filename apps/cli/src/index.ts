@@ -10,6 +10,7 @@ import { makeA2ACommand } from './commands/a2a.js';
 import { makeSiweCommand } from './commands/siwe/index.js';
 import { makeBalanceCommand } from './commands/balance.js';
 import { makeFaucetCommand } from './commands/faucet.js';
+import { makeWalletCommand } from './commands/wallet/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
 const program = new Command()
@@ -25,6 +26,7 @@ program.addCommand(makeConfigCommand());
 program.addCommand(makeWhoamiCommand());
 program.addCommand(makeBalanceCommand());
 program.addCommand(makeFaucetCommand());
+program.addCommand(makeWalletCommand());
 program.addCommand(makeUpdateCommand());
 
 program.parseAsync(process.argv).catch((err) => {
