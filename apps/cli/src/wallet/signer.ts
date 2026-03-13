@@ -165,6 +165,8 @@ export function makeLocalSigner(wallet: ActiveWallet): WalletSigner {
 export interface SignerOverrides {
   /** Force a specific local wallet by name (--wallet flag). */
   wallet?: string;
+  /** Force the custodial wallet regardless of the configured default (--custodial flag). */
+  custodial?: boolean;
   /** Override the JWT used for custodial signing (--token flag). */
   token?: string;
   /** Override the web app base URL (--url flag). */
@@ -176,14 +178,19 @@ export interface SignerOverrides {
  * Flags always take precedence over the stored default wallet.
  *
  * Priority order:
- *   1. overrides.wallet  → local wallet  (--wallet flag)
- *   2. overrides.token   → custodial     (--token flag)
- *   3. config.defaultWallet.type === 'local'     → local wallet
- *   4. config.defaultWallet.type === 'custodial' → custodial (requires token)
- *   5. config.token present                      → custodial (implicit fallback)
- *   6. nothing configured                        → exits with login hint
+ *   1. overrides.wallet    → local wallet  (--wallet flag)
+ *   2. overrides.custodial → custodial     (--custodial flag, uses stored/overridden token)
+ *   3. overrides.token     → custodial     (--token flag)
+ *   4. config.defaultWallet.type === 'local'     → local wallet
+ *   5. config.defaultWallet.type === 'custodial' → custodial (requires token)
+ *   6. config.token present                      → custodial (implicit fallback)
+ *   7. nothing configured                        → exits with login hint
  */
 export async function resolveSigner(overrides?: SignerOverrides): Promise<WalletSigner> {
+  if (overrides?.wallet && overrides.custodial) {
+    throw new Error('--wallet and --custodial are mutually exclusive.');
+  }
+
   const provider = new LocalWalletProvider();
 
   // 1. Explicit local wallet override (--wallet flag)
@@ -193,7 +200,13 @@ export async function resolveSigner(overrides?: SignerOverrides): Promise<Wallet
 
   const cfg = getEffectiveConfig(overrides);
 
-  // 2. Explicit JWT override (--token flag)
+  // 2. Explicit custodial override (--custodial flag)
+  if (overrides?.custodial) {
+    if (!cfg.token) exitNotLoggedIn();
+    return makeCustodialSigner(cfg.url, cfg.token);
+  }
+
+  // 3. Explicit JWT override (--token flag)
   if (overrides?.token) {
     return makeCustodialSigner(cfg.url, overrides.token);
   }
