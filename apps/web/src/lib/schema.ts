@@ -52,3 +52,17 @@ export const a2aApiKeys = pgTable('a2a_api_keys', {
   apiKey:    text('api_key').primaryKey(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Stores short-lived device codes for the RFC 8628-compliant CLI Device Authorization Flow.
+// device_code is the secret polled by the CLI; user_code is the short human-readable code
+// shown to the user. Rows are deleted once the CLI consumes the access_token.
+export const cliDeviceCodes = pgTable('cli_device_codes', {
+  deviceCode: text('device_code').primaryKey(),
+  userCode:   text('user_code').notNull().unique(),
+  // Populated by /api/device/complete after the user authenticates in the browser.
+  token:      text('token'),
+  // 'pending' | 'complete' | 'denied'
+  status:     text('status').notNull().default('pending'),
+  expiresAt:  timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt:  timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

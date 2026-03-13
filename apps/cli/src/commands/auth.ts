@@ -114,58 +114,150 @@ export function makeAuthCommand(): Command {
 
   const deviceCmd = new Command('device').description('Non-interactive device flow login for agents/scripts (start, poll)');
 
+  // ── auth device start ────────────────────────────────────────────────────────
+  // Initiates an RFC 8628-compliant device authorization session.
   deviceCmd
     .command('start')
-    .description('Start a device login session and print the authorization URL to visit')
+    .description('Start a device login session (RFC 8628) and print the authorization URL and user code')
     .option('--url <url>', 'Web app URL (overrides config)')
-    .option('--json', 'Output nonce and loginUrl as JSON')
+    .option('--json', 'Output the full RFC 8628 authorization response as JSON')
     .action(async (opts: { url?: string; json?: boolean }) => {
       const cfg = getEffectiveConfig({ url: opts.url });
       const baseUrl = cfg.url;
 
-      const startRes = await fetch(`${baseUrl}/api/auth/device/start`, { method: 'POST' })
+      const res = await fetch(`${baseUrl}/api/device/authorize`, { method: 'POST' })
         .catch(() => null);
-      if (!startRes) {
+      if (!res) {
         console.error('Error: Could not reach the server. Check your network or --url.');
         process.exit(1);
       }
-      if (!startRes.ok) {
-        const body = await startRes.json().catch(() => ({})) as { error?: string };
-        const msg = body.error ?? `HTTP ${startRes.status}`;
-        console.error(`Error: ${startRes.status} ${msg}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        console.error(`Error: ${res.status} ${body.error ?? `HTTP ${res.status}`}`);
         process.exit(1);
       }
-      const body = await startRes.json().catch(() => null) as { nonce: string } | null;
-      if (!body?.nonce) {
+
+      const body = await res.json().catch(() => null) as {
+        device_code: string;
+        user_code: string;
+        verification_uri: string;
+        verification_uri_complete: string;
+        expires_in: number;
+        interval: number;
+      } | null;
+
+      if (!body?.device_code || !body.user_code) {
         console.error('Error: Invalid response from server.');
         process.exit(1);
       }
-      const { nonce } = body;
-      const loginUrl = `${baseUrl}/device-login?nonce=${encodeURIComponent(nonce)}`;
 
       if (opts.json) {
-        console.log(JSON.stringify({ nonce, loginUrl }));
-      } else {
-        console.log(`Visit the following URL to log in:\n\n  ${loginUrl}\n`);
-        console.log(`Then run:\n\n  a2a-wallet auth device poll --nonce ${nonce}\n`);
+        console.log(JSON.stringify(body));
+        return;
       }
+
+      tryOpenBrowser(body.verification_uri_complete);
+      console.log(`\nTo authorize, open this URL in your browser:\n`);
+      console.log(`  ${body.verification_uri_complete}\n`);
+      console.log(`Or visit:\n`);
+      console.log(`  ${body.verification_uri}\n`);
+      console.log(`and enter the code:\n`);
+      console.log(`  ${body.user_code}\n`);
+      console.log(`Then run:\n`);
+      console.log(`  a2a-wallet auth device poll --device-code ${body.device_code}\n`);
+      console.log(`(Session expires in ${body.expires_in}s)`);
     });
 
+  // ── auth device poll ─────────────────────────────────────────────────────────
   deviceCmd
     .command('poll')
     .description('Poll until the device login is approved, then save the JWT token to config')
-    .requiredOption('--nonce <nonce>', 'Nonce returned by "auth device start"')
+    .option('--device-code <code>', 'Device code returned by "auth device start" (RFC 8628)')
+    .option('--nonce <nonce>', '(Legacy) Nonce returned by the old "auth device start" command')
     .option('--url <url>', 'Web app URL (overrides config)')
-    .action(async (opts: { nonce: string; url?: string }) => {
+    .action(async (opts: { deviceCode?: string; nonce?: string; url?: string }) => {
+      if (!opts.deviceCode && !opts.nonce) {
+        console.error('Error: Provide --device-code (or --nonce for the legacy flow).');
+        process.exit(1);
+      }
+
       const cfg = getEffectiveConfig({ url: opts.url });
       const baseUrl = cfg.url;
 
+      // ── RFC 8628 flow (--device-code) ──────────────────────────────────────
+      if (opts.deviceCode) {
+        console.log(`Waiting for authorization (up to ${TIMEOUT_MS / 1000}s)...`);
+
+        const deadline = Date.now() + TIMEOUT_MS;
+        let intervalMs = POLL_INTERVAL_MS;
+
+        while (Date.now() < deadline) {
+          const pollRes = await fetch(`${baseUrl}/api/device/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+              device_code: opts.deviceCode,
+            }),
+          }).catch(() => null);
+
+          if (!pollRes) {
+            await new Promise((r) => setTimeout(r, intervalMs));
+            continue;
+          }
+
+          const data = await pollRes.json().catch(() => ({})) as {
+            access_token?: string;
+            error?: string;
+          };
+
+          if (pollRes.ok && data.access_token) {
+            const existing = readConfig();
+            writeConfig({ ...existing, token: data.access_token });
+            logTokenSaved(data.access_token);
+            return;
+          }
+
+          switch (data.error) {
+            case 'authorization_pending':
+              // Normal — keep polling
+              break;
+            case 'slow_down':
+              // Server requests slower polling — cap at 30s so a single wait never exceeds the timeout
+              intervalMs = Math.min(intervalMs + 5_000, 30_000);
+              break;
+            case 'access_denied':
+              console.error('Error: Authorization was denied by the user.');
+              process.exit(1);
+              break;
+            case 'expired_token':
+              console.error('Error: Device code has expired. Run "auth device start" again.');
+              process.exit(1);
+              break;
+            default:
+              if (pollRes.status === 429) {
+                const retryAfter = Number(pollRes.headers.get('Retry-After') ?? intervalMs / 1000);
+                console.error(`429 Too many requests. Retrying in ${retryAfter}s...`);
+                await new Promise((r) => setTimeout(r, retryAfter * 1000));
+                continue;
+              }
+              console.error(`Warning: Unexpected response (${pollRes.status}). Retrying...`);
+          }
+
+          await new Promise((r) => setTimeout(r, intervalMs));
+        }
+
+        console.error('Error: Login timed out. Run "auth device start" to begin a new session.');
+        process.exit(1);
+      }
+
+      // ── Legacy flow (--nonce) ──────────────────────────────────────────────
       console.log(`Waiting for authentication (up to 2 minutes)...`);
 
       const deadline = Date.now() + TIMEOUT_MS;
 
       while (Date.now() < deadline) {
-        const pollRes = await fetch(`${baseUrl}/api/auth/device/poll?nonce=${encodeURIComponent(opts.nonce)}`)
+        const pollRes = await fetch(`${baseUrl}/api/auth/device/poll?nonce=${encodeURIComponent(opts.nonce!)}`)
           .catch(() => null);
 
         if (!pollRes) {
