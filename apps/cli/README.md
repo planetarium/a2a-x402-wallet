@@ -65,9 +65,23 @@ pnpm cli:uninstall
 
 ## Quick Start
 
-### 1. Log in
+### 1. Set up a wallet
 
-**Human / interactive:**
+**Local wallet (recommended):**
+
+```bash
+a2a-wallet wallet create
+# → Wallet created successfully. (set as default)
+#   Name:    wallet-1
+#   Address: 0x...
+#   Path:    m/44'/60'/0'/0/0
+```
+
+The wallet is automatically set as default. No login required.
+
+**Custodial wallet (optional — signing delegated to the web service):**
+
+Human / interactive:
 
 ```bash
 a2a-wallet wallet connect
@@ -75,7 +89,7 @@ a2a-wallet wallet connect
 
 Opens the login page in your browser, prints the verification URL and user code, then instructs you to run `--poll` to complete the login.
 
-**Agent / headless (two steps):**
+Agent / headless (two steps):
 
 ```bash
 # Step 1: start a session and get the login URL
@@ -86,11 +100,17 @@ a2a-wallet wallet connect --json
 a2a-wallet wallet connect --poll <device-code>
 # → Waiting for authorization (up to 120s)...
 # → Token saved. You are now logged in.
+# → This token is valid for X more days.
+# → Active wallet set to custodial.
 ```
 
-This lets the agent relay the login URL to the user *before* blocking on the poll.
+Then set as default:
 
-**Direct token injection (CI / scripted environments):**
+```bash
+a2a-wallet wallet use --custodial
+```
+
+Direct token injection (CI / scripted environments):
 
 ```bash
 a2a-wallet config set token <jwt>
@@ -141,9 +161,9 @@ a2a-wallet
 │   ├── disconnect         Log out of the custodial wallet service
 │   └── export             Show instructions for moving wallets to another machine
 ├── auth [DEPRECATED]
-│   └── device
-│       ├── start          Start a device login session (RFC 8628)
-│       └── poll           Poll for completion and save the token
+│   ├── device
+│   │   ├── start          Start a device login session (RFC 8628)
+│   │   └── poll           Poll for completion and save the token
 │   └── logout             Remove the saved JWT token
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
@@ -155,235 +175,6 @@ a2a-wallet
 ```
 
 ## Commands
-
-### `wallet connect`
-
-```bash
-a2a-wallet wallet connect [--url <url>]          # human / interactive (opens browser)
-a2a-wallet wallet connect --json                 # print device auth response as JSON (agent step 1)
-a2a-wallet wallet connect --poll <device-code>   # poll for completion (agent step 2)
-```
-
-Logs in to the custodial wallet service. When run without flags, opens the login page in your browser, prints the verification URL and user code, and instructs you to run `--poll <device_code>` to complete the login.
-
-For headless/agent use, combine `--json` (step 1) with `--poll` (step 2):
-
-```bash
-# Step 1: start a session and print the verification URL
-a2a-wallet wallet connect --json
-# → {"device_code":"...","user_code":"ABCD-1234","verification_uri":"https://...","verification_uri_complete":"https://...?user_code=ABCD-1234"}
-
-# Step 2: after the user completes login, poll for the token
-a2a-wallet wallet connect --poll <device_code>
-# → Waiting for authorization (up to 120s)...
-# → Token saved. You are now logged in.
-# → Active wallet set to custodial.
-```
-
-| Option | Description |
-|--------|-------------|
-| `--poll <device-code>` | Poll for the token using the device code from step 1 |
-| `--url <url>` | Override the web app URL for this request |
-| `--json` | Output the device authorization response as JSON |
-
-### `wallet disconnect`
-
-```bash
-a2a-wallet wallet disconnect
-```
-
-Logs out of the custodial wallet service and removes the saved token from the config file. If the custodial wallet was set as the default, it is also unset — run `wallet use <name>` to choose a local wallet afterward.
-
-### `config set`
-
-```bash
-a2a-wallet config set token <jwt>   # Set accessToken
-a2a-wallet config set url <url>     # Set web app URL (default: https://wallet.a2a-x402.xyz)
-```
-
-Settings are stored in `~/.a2a-wallet/config.json`.
-
-### `config get`
-
-```bash
-a2a-wallet config get          # Show all settings (token is masked)
-a2a-wallet config get url      # Show a specific value
-```
-
-### `x402 sign`
-
-Signs x402 `PaymentRequirements` and returns a ready-to-use A2A `message.metadata` object containing the signed `PaymentPayload`. To submit payment, set `message.metadata` to this output when sending an A2A message.
-
-```bash
-a2a-wallet x402 sign [options]
-```
-
-**Required**
-
-| Option | Description |
-|--------|-------------|
-| `--scheme <scheme>` | Payment scheme (`exact`) |
-| `--network <network>` | Blockchain network |
-| `--asset <address>` | ERC-20 token contract address |
-| `--pay-to <address>` | Merchant wallet address |
-| `--amount <value>` | Max payment amount in token's smallest unit |
-| `--extra-name <name>` | EIP-712 domain name from token contract (e.g. `"USDC"`) |
-| `--extra-version <version>` | EIP-712 domain version from token contract (e.g. `"2"`) |
-
-**Optional**
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--valid-for <seconds>` | `3600` | Signature validity duration in seconds |
-| `--wallet <name>` | — | Local wallet to sign with (overrides default wallet) |
-| `--custodial` | — | Use the custodial wallet (overrides default wallet) |
-| `--token <jwt>` | config | One-time token for custodial signing (overrides config) |
-| `--url <url>` | config | Web app URL for this request only (overrides config) |
-| `--json` | — | Output pure JSON to stdout (recommended for Agent/MCP use) |
-
-**Output example**
-
-```json
-{
-  "x402.payment.status": "payment-submitted",
-  "x402.payment.payload": {
-    "x402Version": 1,
-    "scheme": "exact",
-    "network": "base",
-    "payload": {
-      "signature": "0x...",
-      "authorization": {
-        "from": "0xUserWallet",
-        "to": "0xMerchantAddress",
-        "value": "120000000",
-        "validAfter": "0",
-        "validBefore": "1234567890",
-        "nonce": "0x..."
-      }
-    }
-  }
-}
-```
-
-> **Deprecated:** The `siwe` command is deprecated and will be removed in a future version. SIWE tokens are signed by this CLI's embedded wallet, which means the authenticated identity is locked to this CLI instance. Other clients (Web UI, mobile app, etc.) holding a different wallet cannot prove the same identity — making multi-client scenarios impossible.
-
-### `siwe prepare`
-
-Generates an EIP-4361 SIWE message and prints it to stdout.
-
-If `--address` is omitted, the wallet address is resolved automatically from your linked account — **authentication required** in that case. If `--address` is provided explicitly, no authentication is needed.
-
-```bash
-a2a-wallet siwe prepare \
-  --domain app.example.com \
-  --uri https://app.example.com \
-  [--address 0xf39F...] [--ttl 7d] [--chain-id 1] [--statement "..."]
-```
-
-| Option | Required | Default | Description |
-|--------|----------|---------|-------------|
-| `--domain <host>` | Y | — | Domain (e.g. `app.example.com`) |
-| `--uri <uri>` | Y | — | URI (e.g. `https://app.example.com`) |
-| `--address <address>` | N | linked wallet | Ethereum address. If omitted, resolved from your account |
-| `--ttl <duration>` | N | `7d` | Expiration duration (`30m`, `1h`, `7d`) |
-| `--chain-id <n>` | N | `1` | EIP-155 chain ID |
-| `--statement <text>` | N | `I accept the Terms of Service` | Statement text |
-| `--token <jwt>` | N | config | One-time token for this request only |
-| `--url <url>` | N | config | Web app URL for this request only |
-
-**Output example:**
-
-```
-app.example.com wants you to sign in with your Ethereum account:
-0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-
-I accept the Terms of Service
-
-URI: https://app.example.com
-Version: 1
-Chain ID: 1
-Nonce: b7d986fd22d44f5fbdfe4d23161ca272
-Issued At: 2026-03-07T21:26:35.386Z
-Expiration Time: 2026-03-14T21:26:35.386Z
-```
-
-### `siwe encode`
-
-Encodes a SIWE message and signature into a base64url token. Does not require authentication.
-
-> **Token format:** The output is `base64url(JSON{ message, signature })` — **not a JWT**. There is no server-side secret or HMAC. Security is provided entirely by the ECDSA signature embedded in the SIWE message. Anyone can decode the token; only the private key holder could have produced it.
-
-```bash
-a2a-wallet siwe encode \
-  --signature 0xda0e85... \
-  [--message-file /tmp/msg.txt]  # reads stdin if omitted
-```
-
-| Option | Required | Description |
-|--------|----------|-------------|
-| `--signature <hex>` | Y | 65-byte ECDSA signature hex (`0x` + 130 hex chars) |
-| `--message-file <path>` | N | Path to message file (default: stdin) |
-
-### `siwe decode`
-
-Decodes a base64url SIWE token and prints its fields. Does not require authentication.
-
-```bash
-a2a-wallet siwe decode <token> [--json]
-```
-
-**Human-readable output:**
-
-```
-Address:    0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
-Domain:     app.example.com
-Statement:  I accept the Terms of Service
-URI:        https://app.example.com
-Chain ID:   1
-Nonce:      e749d1c140844c86a279f3b5780e2bc4
-Issued At:  2026-03-05T09:39:13.849Z
-Expires:    2026-03-05T10:39:13.849Z
-Signature:  0xda0e85...
-```
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
-
-### `siwe verify`
-
-Recovers the signer address via EIP-191 and checks expiration. Does not require authentication.
-
-```bash
-a2a-wallet siwe verify <token>
-# stdout: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
-# exit 0 on success, exit 1 on failure
-```
-
-### `siwe auth`
-
-All-in-one command: auto-detects your wallet address, generates a SIWE message, signs it via the API, and outputs the token. **Requires authentication.**
-
-```bash
-a2a-wallet siwe auth \
-  --domain app.example.com \
-  --uri https://app.example.com \
-  [--ttl 1h] [--chain-id 1] [--statement "..."] \
-  [--token <jwt>] [--url <url>] [--json]
-```
-
-| Option | Required | Default | Description |
-|--------|----------|---------|-------------|
-| `--domain <host>` | Y | — | Domain |
-| `--uri <uri>` | Y | — | URI |
-| `--ttl <duration>` | N | `7d` | Expiration duration (`30m`, `1h`, `7d`) |
-| `--chain-id <n>` | N | `1` | EIP-155 chain ID |
-| `--statement <text>` | N | `I accept the Terms of Service` | Statement text |
-| `--token <jwt>` | N | config | One-time token for this request only |
-| `--url <url>` | N | config | Web app URL for this request only |
-| `--json` | N | — | Output pure JSON to stdout |
-
-The wallet address is resolved automatically via `whoami`. The resulting base64url token can be presented to any service that supports SIWE authentication.
 
 ### `wallet create`
 
@@ -468,6 +259,44 @@ Exporting private keys directly is not supported. Prints the file paths to copy 
 a2a-wallet wallet export
 ```
 
+### `wallet connect`
+
+Logs in to the custodial wallet service. When run without flags, opens the login page in your browser, prints the verification URL and user code, and instructs you to run `--poll <device_code>` to complete the login.
+
+```bash
+a2a-wallet wallet connect [--url <url>]          # human / interactive (opens browser)
+a2a-wallet wallet connect --json                 # print device auth response as JSON (agent step 1)
+a2a-wallet wallet connect --poll <device-code>   # poll for completion (agent step 2)
+```
+
+For headless/agent use, combine `--json` (step 1) with `--poll` (step 2):
+
+```bash
+# Step 1: start a session and print the verification URL
+a2a-wallet wallet connect --json
+# → {"device_code":"...","user_code":"ABCD-1234","verification_uri":"https://...","verification_uri_complete":"https://...?user_code=ABCD-1234"}
+
+# Step 2: after the user completes login, poll for the token
+a2a-wallet wallet connect --poll <device_code>
+# → Waiting for authorization (up to 120s)...
+# → Token saved. You are now logged in.
+# → Active wallet set to custodial.
+```
+
+| Option | Description |
+|--------|-------------|
+| `--poll <device-code>` | Poll for the token using the device code from step 1 |
+| `--url <url>` | Override the web app URL for this request |
+| `--json` | Output the device authorization response as JSON |
+
+### `wallet disconnect`
+
+```bash
+a2a-wallet wallet disconnect
+```
+
+Logs out of the custodial wallet service and removes the saved token from the config file. If the custodial wallet was set as the default, it is also unset — run `wallet use <name>` to choose a local wallet afterward.
+
 ### `status`
 
 Shows login status (logged-in / expired / not-logged-in), the default wallet (type, name, address), and the web app URL.
@@ -498,46 +327,75 @@ a2a-wallet status [--url <url>] [--json]
 | `--url <url>` | Web app URL for this request only |
 | `--json` | Output as JSON |
 
----
-
-### `auth device start` [DEPRECATED]
-
-> Use `wallet connect` instead.
-
-Starts a device authorization session (RFC 8628) and prints the verification URL and user code.
+### `config set`
 
 ```bash
-a2a-wallet auth device start [--url <url>] [--json]
+a2a-wallet config set token <jwt>   # Set accessToken
+a2a-wallet config set url <url>     # Set web app URL (default: https://wallet.a2a-x402.xyz)
 ```
+
+Settings are stored in `~/.a2a-wallet/config.json`.
+
+### `config get`
+
+```bash
+a2a-wallet config get          # Show all settings (token is masked)
+a2a-wallet config get url      # Show a specific value
+```
+
+### `x402 sign`
+
+Signs x402 `PaymentRequirements` and returns a ready-to-use A2A `message.metadata` object containing the signed `PaymentPayload`. To submit payment, set `message.metadata` to this output when sending an A2A message.
+
+```bash
+a2a-wallet x402 sign [options]
+```
+
+**Required**
 
 | Option | Description |
 |--------|-------------|
-| `--url <url>` | Web app URL (overrides config) |
-| `--json` | Output the full RFC 8628 authorization response as JSON |
+| `--scheme <scheme>` | Payment scheme (`exact`) |
+| `--network <network>` | Blockchain network |
+| `--asset <address>` | ERC-20 token contract address |
+| `--pay-to <address>` | Merchant wallet address |
+| `--amount <value>` | Max payment amount in token's smallest unit |
+| `--extra-name <name>` | EIP-712 domain name from token contract (e.g. `"USDC"`) |
+| `--extra-version <version>` | EIP-712 domain version from token contract (e.g. `"2"`) |
 
-### `auth device poll` [DEPRECATED]
+**Optional**
 
-> Use `wallet connect --poll` instead.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--valid-for <seconds>` | `3600` | Signature validity duration in seconds |
+| `--wallet <name>` | — | Local wallet to sign with (overrides default wallet) |
+| `--custodial` | — | Use the custodial wallet (overrides default wallet) |
+| `--token <jwt>` | config | One-time token for custodial signing (overrides config) |
+| `--url <url>` | config | Web app URL for this request only (overrides config) |
+| `--json` | — | Output pure JSON to stdout (recommended for Agent/MCP use) |
 
-Polls until the device login is approved, then saves the JWT token to config.
+**Output example**
 
-```bash
-a2a-wallet auth device poll --device-code <code> [--url <url>]
-```
-
-| Option | Description |
-|--------|-------------|
-| `--device-code <code>` | Device code returned by `auth device start` |
-| `--url <url>` | Web app URL (overrides config) |
-
-### `auth logout` [DEPRECATED]
-
-> Use `wallet disconnect` instead.
-
-Removes the saved JWT token from config.
-
-```bash
-a2a-wallet auth logout
+```json
+{
+  "x402.payment.status": "payment-submitted",
+  "x402.payment.payload": {
+    "x402Version": 1,
+    "scheme": "exact",
+    "network": "base",
+    "payload": {
+      "signature": "0x...",
+      "authorization": {
+        "from": "0xUserWallet",
+        "to": "0xMerchantAddress",
+        "value": "120000000",
+        "validAfter": "0",
+        "validBefore": "1234567890",
+        "nonce": "0x..."
+      }
+    }
+  }
+}
 ```
 
 ### `a2a auth`
@@ -549,11 +407,13 @@ Authenticates with an external A2A service via OAuth2 device flow and saves the 
 ```bash
 a2a-wallet a2a auth <url>
 # → To authenticate, open the following URL in a browser:
-# →   http://example.com/a2a/login?user_code=WDJB-MJHT
+# →   https://example.com/login?user_code=WDJB-MJHT
 # →
 # → After completing login, run:
 # →   a2a-wallet a2a auth <url> --user-code WDJB-MJHT
 ```
+
+The URL shown is `verification_uri_complete` from the agent's device authorization endpoint. The user code (e.g. `WDJB-MJHT`) is included in that URL by the agent — it does not need to be entered separately.
 
 **Step 2** — after completing login in the browser, pass the user code:
 
@@ -635,12 +495,12 @@ a2a-wallet a2a stream <url> <message> [options]
 | `--bearer <token>` | Bearer token for agent authentication |
 | `--json` | Output each event as raw JSON (one line per event) |
 
-### `a2a task`
+### `a2a tasks get`
 
 Retrieves the current state of a task.
 
 ```bash
-a2a-wallet a2a task <url> <taskId> [options]
+a2a-wallet a2a tasks get <url> <taskId> [options]
 ```
 
 | Option | Description |
@@ -669,6 +529,170 @@ Updates the binary to the latest version from GitHub Releases. Only works for bi
 ```bash
 a2a-wallet update
 ```
+
+---
+
+## Deprecated Commands
+
+### `auth device start` [DEPRECATED]
+
+> Use `wallet connect` instead.
+
+Starts a device authorization session (RFC 8628) and prints the verification URL and user code.
+
+```bash
+a2a-wallet auth device start [--url <url>] [--json]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--url <url>` | Web app URL (overrides config) |
+| `--json` | Output the full RFC 8628 authorization response as JSON |
+
+### `auth device poll` [DEPRECATED]
+
+> Use `wallet connect --poll` instead.
+
+Polls until the device login is approved, then saves the JWT token to config.
+
+```bash
+a2a-wallet auth device poll --device-code <code> [--url <url>]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--device-code <code>` | Device code returned by `auth device start` |
+| `--url <url>` | Web app URL (overrides config) |
+
+### `auth logout` [DEPRECATED]
+
+> Use `wallet disconnect` instead.
+
+Removes the saved JWT token from config.
+
+```bash
+a2a-wallet auth logout
+```
+
+### `siwe prepare` [DEPRECATED]
+
+> The `siwe` command is deprecated and will be removed in a future version. SIWE tokens are signed by this CLI's embedded wallet, which means the authenticated identity is locked to this CLI instance. Other clients (Web UI, mobile app, etc.) holding a different wallet cannot prove the same identity — making multi-client scenarios impossible.
+
+Generates an EIP-4361 SIWE message and prints it to stdout.
+
+If `--address` is omitted, the wallet address is resolved automatically from your connected account — **authentication required** in that case. If `--address` is provided explicitly, no authentication is needed.
+
+```bash
+a2a-wallet siwe prepare \
+  --domain app.example.com \
+  --uri https://app.example.com \
+  [--address 0xf39F...] [--ttl 7d] [--chain-id 1] [--statement "..."]
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--domain <host>` | Y | — | Domain (e.g. `app.example.com`) |
+| `--uri <uri>` | Y | — | URI (e.g. `https://app.example.com`) |
+| `--address <address>` | N | linked wallet | Ethereum address. If omitted, resolved from your account |
+| `--ttl <duration>` | N | `7d` | Expiration duration (`30m`, `1h`, `7d`) |
+| `--chain-id <n>` | N | `1` | EIP-155 chain ID |
+| `--statement <text>` | N | `I accept the Terms of Service` | Statement text |
+| `--token <jwt>` | N | config | One-time token for this request only |
+| `--url <url>` | N | config | Web app URL for this request only |
+
+**Output example:**
+
+```
+app.example.com wants you to sign in with your Ethereum account:
+0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+
+I accept the Terms of Service
+
+URI: https://app.example.com
+Version: 1
+Chain ID: 1
+Nonce: b7d986fd22d44f5fbdfe4d23161ca272
+Issued At: 2026-03-07T21:26:35.386Z
+Expiration Time: 2026-03-14T21:26:35.386Z
+```
+
+### `siwe encode` [DEPRECATED]
+
+Encodes a SIWE message and signature into a base64url token. Does not require authentication.
+
+> **Token format:** The output is `base64url(JSON{ message, signature })` — **not a JWT**. There is no server-side secret or HMAC. Security is provided entirely by the ECDSA signature embedded in the SIWE message. Anyone can decode the token; only the private key holder could have produced it.
+
+```bash
+a2a-wallet siwe encode \
+  --signature 0xda0e85... \
+  [--message-file /tmp/msg.txt]  # reads stdin if omitted
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--signature <hex>` | Y | 65-byte ECDSA signature hex (`0x` + 130 hex chars) |
+| `--message-file <path>` | N | Path to message file (default: stdin) |
+
+### `siwe decode` [DEPRECATED]
+
+Decodes a base64url SIWE token and prints its fields. Does not require authentication.
+
+```bash
+a2a-wallet siwe decode <token> [--json]
+```
+
+**Human-readable output:**
+
+```
+Address:    0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+Domain:     app.example.com
+Statement:  I accept the Terms of Service
+URI:        https://app.example.com
+Chain ID:   1
+Nonce:      e749d1c140844c86a279f3b5780e2bc4
+Issued At:  2026-03-05T09:39:13.849Z
+Expires:    2026-03-05T10:39:13.849Z
+Signature:  0xda0e85...
+```
+
+| Option | Description |
+|--------|-------------|
+| `--json` | Output as JSON |
+
+### `siwe verify` [DEPRECATED]
+
+Recovers the signer address via EIP-191 and checks expiration. Does not require authentication.
+
+```bash
+a2a-wallet siwe verify <token>
+# stdout: 0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+# exit 0 on success, exit 1 on failure
+```
+
+### `siwe auth` [DEPRECATED]
+
+All-in-one command: auto-detects your wallet address, generates a SIWE message, signs it via the API, and outputs the token. **Requires authentication.**
+
+```bash
+a2a-wallet siwe auth \
+  --domain app.example.com \
+  --uri https://app.example.com \
+  [--ttl 1h] [--chain-id 1] [--statement "..."] \
+  [--token <jwt>] [--url <url>] [--json]
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--domain <host>` | Y | — | Domain |
+| `--uri <uri>` | Y | — | URI |
+| `--ttl <duration>` | N | `7d` | Expiration duration (`30m`, `1h`, `7d`) |
+| `--chain-id <n>` | N | `1` | EIP-155 chain ID |
+| `--statement <text>` | N | `I accept the Terms of Service` | Statement text |
+| `--token <jwt>` | N | config | One-time token for this request only |
+| `--url <url>` | N | config | Web app URL for this request only |
+| `--json` | N | — | Output pure JSON to stdout |
+
+The wallet address is resolved automatically from your connected account. The resulting base64url token can be presented to any service that supports SIWE authentication.
 
 ## Configuration
 
@@ -718,21 +742,17 @@ The CLI is designed for programmatic use by AI Agents:
 
 **Initial setup (one-time)**
 
-Use the two-step device flow for agent setup — no local server required:
+Create a local wallet — no login or network access required:
 
 ```bash
-# Step 1: get the login URL and show it to the user
-a2a-wallet wallet connect --json
-# → {"device_code":"...","user_code":"ABCD-1234","verification_uri":"https://...","verification_uri_complete":"https://...?user_code=ABCD-1234"}
-
-# Step 2: once the user has completed login, poll for the token
-a2a-wallet wallet connect --poll <device_code>
-# → Waiting for authorization (up to 120s)...
-# → Token saved. You are now logged in.
-# → Active wallet set to custodial.
+a2a-wallet wallet create
+# → Wallet created successfully. (set as default)
+#   Name:    wallet-1
+#   Address: 0x...
+#   Path:    m/44'/60'/0'/0/0
 ```
 
-Once logged in, copy the token from `~/.a2a-wallet/config.json` and set it in the agent's environment as `A2A_WALLET_TOKEN`.
+The wallet is stored in `~/.a2a-wallet/` and used automatically for all signing operations.
 
 **Invocation example**
 

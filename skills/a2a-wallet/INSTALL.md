@@ -18,21 +18,23 @@ Download `a2a-wallet-windows-x64.exe` from the [Releases](https://github.com/pla
 a2a-wallet --version
 ```
 
-## First-time login
+## First-time setup
 
-After installation, authenticate with your wallet:
+Create a local wallet — this is the recommended default:
 
 ```bash
-a2a-wallet auth login
+a2a-wallet wallet create
+# → Wallet created successfully. (set as default)
+#   Name:    wallet-1
+#   Address: 0x...
+#   Path:    m/44'/60'/0'/0/0
 ```
 
-For headless / agent environments, use the two-step device flow:
+The new wallet is automatically set as the default. You're ready to go.
+
+If you have multiple local wallets and want to switch between them, use `wallet use`:
 
 ```bash
-# Step 1: get the login URL
-a2a-wallet auth device start --json
-# → {"nonce":"abc123","loginUrl":"https://..."}
-
-# Step 2: show the URL to the user, then poll for completion
-a2a-wallet auth device poll --nonce abc123
+a2a-wallet wallet use <name>
+# → Active wallet set to "wallet-1" (0x...).
 ```
