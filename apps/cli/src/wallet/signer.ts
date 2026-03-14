@@ -184,7 +184,7 @@ export interface SignerOverrides {
  *   4. config.defaultWallet.type === 'local'     → local wallet
  *   5. config.defaultWallet.type === 'custodial' → custodial (requires token)
  *   6. config.token present                      → custodial (implicit fallback)
- *   7. nothing configured                        → exits with login hint
+ *   7. nothing configured                        → exits with hint to run "wallet connect"
  */
 export async function resolveSigner(overrides?: SignerOverrides): Promise<WalletSigner> {
   if (overrides?.wallet && overrides.custodial) {

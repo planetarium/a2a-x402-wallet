@@ -6,15 +6,15 @@ import { resolveWalletNameToCreate } from '../../wallet/name.js';
 export function makeWalletCreateCommand(): Command {
   return new Command('create')
     .description('Create a new local Ethereum wallet (mnemonic-based)')
-    .argument('[name]', 'Wallet name (auto-generated if omitted)')
+    .option('--name <name>', 'Wallet name (auto-generated if omitted)')
     .option(
       '--path <derivation-path>',
       "BIP-44 derivation path (overrides auto-detection, e.g. m/44'/60'/0'/0/2)",
     )
-    .action(async (nameArg: string | undefined, opts: { path?: string }) => {
+    .action(async (opts: { name?: string; path?: string }) => {
       const provider = new LocalWalletProvider();
       try {
-        const name = resolveWalletNameToCreate(nameArg);
+        const name = resolveWalletNameToCreate(opts.name);
         const wallet = await provider.create(name, opts.path);
 
         const config = readConfig();

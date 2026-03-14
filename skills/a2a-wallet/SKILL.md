@@ -2,10 +2,10 @@
 name: a2a-wallet
 description: >
   Use the a2a-wallet CLI to interact with A2A agents — send messages, stream responses,
-  and manage tasks. Also supports x402 payment signing and SIWE authentication required
-  by A2A agents. Trigger when the user needs to: send a message to an A2A agent, sign
-  an x402 payment, authenticate via SIWE, log in or out of a2a-wallet, check their
-  wallet address or balance, or configure the a2a-wallet CLI.
+  and manage tasks. Also supports x402 payment signing and local/custodial wallet management.
+  Trigger when the user needs to: send a message to an A2A agent, sign an x402 payment,
+  log in or out of a2a-wallet, manage local wallets, check their wallet address or balance,
+  or configure the a2a-wallet CLI.
 compatibility: >
   Requires a2a-wallet CLI to be installed. macOS (Apple Silicon, Intel),
   Linux (x64, arm64), Windows (x64). See INSTALL.md for setup instructions.
@@ -22,16 +22,16 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 
 | Command | Description |
 |---------|-------------|
-| `a2a` | Interact with A2A agents (`card`, `send`, `stream`, `tasks`, `cancel`) |
-| `x402 sign` | Sign x402 PaymentRequirements → PaymentPayload (for paywalled agents) |
-| `siwe` | SIWE token operations (`prepare`, `encode`, `decode`, `verify`, `auth`) |
-| `auth` | Log in / out (`login`, `device start/poll`, `logout`) |
+| `a2a` | A2A protocol client: `auth`, `list`, `disconnect`, `card`, `send`, `stream`, `tasks`, `cancel` |
+| `x402 sign` | Sign x402 PaymentRequirements → A2A message metadata (for paywalled agents) |
+| `wallet` | Manage wallets: `create`, `import`, `list`, `use [--custodial]`, `connect`, `disconnect`, `export` |
+| `status` | Show login status, default wallet type/address, and web app URL |
 | `config` | Get or set config values (`token`, `url`) |
-| `whoami` | Show authenticated user info |
-| `balance` | Show wallet balance |
-| `sign` | Sign an arbitrary message with the wallet |
+| `balance` | Show USDC balance for the active wallet on a given network |
 | `faucet` | Request testnet tokens |
 | `update` | Update the CLI binary |
+| `auth` | ⚠️ DEPRECATED — Use `wallet connect/disconnect` instead. Device flow login: `device start`, `device poll`, `logout`. Will be removed in a future version. |
+| `siwe` | ⚠️ DEPRECATED — SIWE token operations (`prepare`, `encode`, `decode`, `verify`, `auth`). Will be removed in a future version. |
 
 ## Agent Card Extensions
 
@@ -96,6 +96,8 @@ Agents declaring this extension monetize their services via on-chain cryptocurre
 
 Agents declaring this extension require a wallet-signed auth token on every request. If `required: true`, messages cannot be sent without one.
 
+> ⚠️ The `siwe auth` command used to generate these tokens is **deprecated**. SIWE tokens are locked to this CLI's wallet identity and cannot be shared with other clients (Web UI, mobile, etc.). The `siwe` command will be removed in a future version.
+
 **How to detect**: The agent card will contain:
 
 ```json
@@ -109,7 +111,7 @@ Agents declaring this extension require a wallet-signed auth token on every requ
 }
 ```
 
-**Usage**:
+**Usage** (deprecated — emits a warning):
 1. Generate a token for the agent's domain:
    ```bash
    TOKEN=$(a2a-wallet siwe auth \
@@ -127,6 +129,26 @@ Agents declaring this extension require a wallet-signed auth token on every requ
 **Note**: The token is tied to the agent's domain — a token issued for one agent will be rejected by another.
 
 ---
+
+## Wallet selection
+
+The CLI supports two wallet types:
+
+- **Local wallet** — private key stored locally (`wallet create` / `wallet import`)
+- **Custodial wallet** — signing delegated to the web service (requires login via `wallet connect`)
+
+Switch the active wallet with:
+
+```bash
+a2a-wallet wallet use <name>       # local wallet
+a2a-wallet wallet use --custodial  # custodial wallet
+```
+
+Check current status at any time:
+
+```bash
+a2a-wallet status
+```
 
 ## Agent usage tips
 

@@ -70,23 +70,22 @@ pnpm cli:uninstall
 **Human / interactive:**
 
 ```bash
-a2a-wallet auth login
+a2a-wallet wallet connect
 ```
 
-Starts a local callback server. Opens the login page in your browser and saves the token automatically when you complete login.
+Opens the login page in your browser, prints the verification URL and user code, then instructs you to run `--poll` to complete the login.
 
 **Agent / headless (two steps):**
 
 ```bash
 # Step 1: start a session and get the login URL
-a2a-wallet auth device start --json
-# → {"nonce":"abc123","loginUrl":"https://..."}
+a2a-wallet wallet connect --json
+# → {"device_code":"...","user_code":"...","verification_uri":"...","verification_uri_complete":"..."}
 
 # Step 2: show the URL to the user, then poll for completion
-a2a-wallet auth device poll --nonce abc123
-# → Waiting for authentication (up to 2 minutes)...
+a2a-wallet wallet connect --poll <device-code>
+# → Waiting for authorization (up to 120s)...
 # → Token saved. You are now logged in.
-# → This token is valid for 5 more minutes.
 ```
 
 This lets the agent relay the login URL to the user *before* blocking on the poll.
@@ -94,7 +93,7 @@ This lets the agent relay the login URL to the user *before* blocking on the pol
 **Direct token injection (CI / scripted environments):**
 
 ```bash
-a2a-wallet auth login --token <jwt>
+a2a-wallet config set token <jwt>
 ```
 
 ### 2. Sign an x402 payment
@@ -126,13 +125,7 @@ a2a-wallet
 │   ├── tasks              Get the current state of a task
 │   └── cancel             Request cancellation of a running task
 ├── x402
-│   └── sign               Sign x402 PaymentRequirements → PaymentPayload
-├── auth
-│   ├── login              Log in via browser callback (humans)
-│   ├── device
-│   │   ├── start          Start device session and print login URL (agent step 1)
-│   │   └── poll           Poll for login completion and save token (agent step 2)
-│   └── logout             Remove the saved token
+│   └── sign               Sign x402 PaymentRequirements → A2A message.metadata
 ├── siwe [DEPRECATED]
 │   ├── prepare            Generate an EIP-4361 SIWE message
 │   ├── encode             Encode message + signature into a base64url token
@@ -140,15 +133,22 @@ a2a-wallet
 │   ├── verify             Verify token signature and expiration
 │   └── auth               All-in-one: prepare → sign → encode
 ├── wallet
-│   ├── create [name]      Create a new mnemonic-based local wallet
+│   ├── create             Create a new mnemonic-based local wallet
 │   ├── import [name]      Import a wallet from a private key
 │   ├── list               List all local wallets
-│   ├── use <name>         Set the default wallet
+│   ├── use [name]         Set the default local wallet (or --custodial)
+│   ├── connect            Log in to the custodial wallet service
+│   ├── disconnect         Log out of the custodial wallet service
 │   └── export             Show instructions for moving wallets to another machine
+├── auth [DEPRECATED]
+│   └── device
+│       ├── start          Start a device login session (RFC 8628)
+│       └── poll           Poll for completion and save the token
+│   └── logout             Remove the saved JWT token
 ├── config
 │   ├── set <key> <value>  Set a config value (token, url)
 │   └── get [key]          Show config values
-├── whoami                 Show authenticated user info
+├── status                 Show login status, default wallet, and wallet address
 ├── balance                Show wallet balance
 ├── faucet                 Request testnet tokens
 └── update                 Update a2a-wallet to the latest version
@@ -156,55 +156,43 @@ a2a-wallet
 
 ## Commands
 
-### `auth login`
+### `wallet connect`
 
 ```bash
-a2a-wallet auth login [--url <url>]   # human / interactive
-a2a-wallet auth login --token <jwt>   # direct token injection
+a2a-wallet wallet connect [--url <url>]          # human / interactive (opens browser)
+a2a-wallet wallet connect --json                 # print device auth response as JSON (agent step 1)
+a2a-wallet wallet connect --poll <device-code>   # poll for completion (agent step 2)
 ```
 
-Starts a local callback server and opens the login page in your browser. The token is saved automatically when login completes. Recommended for interactive use.
+Logs in to the custodial wallet service. When run without flags, opens the login page in your browser, prints the verification URL and user code, and instructs you to run `--poll <device_code>` to complete the login.
 
-**`--token`** — Saves a token directly without opening a browser. Useful for scripted or CI environments.
+For headless/agent use, combine `--json` (step 1) with `--poll` (step 2):
+
+```bash
+# Step 1: start a session and print the verification URL
+a2a-wallet wallet connect --json
+# → {"device_code":"...","user_code":"ABCD-1234","verification_uri":"https://...","verification_uri_complete":"https://...?user_code=ABCD-1234"}
+
+# Step 2: after the user completes login, poll for the token
+a2a-wallet wallet connect --poll <device_code>
+# → Waiting for authorization (up to 120s)...
+# → Token saved. You are now logged in.
+# → Active wallet set to custodial.
+```
 
 | Option | Description |
 |--------|-------------|
+| `--poll <device-code>` | Poll for the token using the device code from step 1 |
 | `--url <url>` | Override the web app URL for this request |
-| `--token <token>` | Save a token directly without opening a browser |
+| `--json` | Output the device authorization response as JSON |
 
-### `auth device start`
+### `wallet disconnect`
 
 ```bash
-a2a-wallet auth device start [--url <url>] [--json]
+a2a-wallet wallet disconnect
 ```
 
-Starts a device login session on the server and prints the login URL, then exits immediately. Use this as **step 1** of the agent login flow so the agent can relay the URL to the user before blocking.
-
-| Option | Description |
-|--------|-------------|
-| `--url <url>` | Override the web app URL for this request |
-| `--json` | Output `{"nonce":"…","loginUrl":"…"}` to stdout |
-
-### `auth device poll`
-
-```bash
-a2a-wallet auth device poll --device-code <device_code> [--url <url>]
-```
-
-Polls the server for login completion. Saves the token once the user completes login. Use this as **step 2** of the agent login flow after showing the URL to the user.
-
-| Option | Description |
-|--------|-------------|
-| `--device-code <device_code>` | Nonce returned by `auth device start` (required) |
-| `--url <url>` | Override the web app URL for this request |
-
-### `auth logout`
-
-```bash
-a2a-wallet auth logout
-```
-
-Removes the saved token from the config file.
+Logs out of the custodial wallet service and removes the saved token from the config file. If the custodial wallet was set as the default, it is also unset — run `wallet use <name>` to choose a local wallet afterward.
 
 ### `config set`
 
@@ -224,7 +212,7 @@ a2a-wallet config get url      # Show a specific value
 
 ### `x402 sign`
 
-Signs x402 `PaymentRequirements` and returns a `PaymentPayload`.
+Signs x402 `PaymentRequirements` and returns a ready-to-use A2A `message.metadata` object containing the signed `PaymentPayload`. To submit payment, set `message.metadata` to this output when sending an A2A message.
 
 ```bash
 a2a-wallet x402 sign [options]
@@ -247,26 +235,31 @@ a2a-wallet x402 sign [options]
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--valid-for <seconds>` | `3600` | Signature validity duration in seconds |
-| `--token <jwt>` | config | One-time token for this request only |
-| `--url <url>` | config | Web app URL for this request only |
-| `--json` | — | Output pure JSON to stdout (recommended for Agent use) |
+| `--wallet <name>` | — | Local wallet to sign with (overrides default wallet) |
+| `--custodial` | — | Use the custodial wallet (overrides default wallet) |
+| `--token <jwt>` | config | One-time token for custodial signing (overrides config) |
+| `--url <url>` | config | Web app URL for this request only (overrides config) |
+| `--json` | — | Output pure JSON to stdout (recommended for Agent/MCP use) |
 
 **Output example**
 
 ```json
 {
-  "x402Version": 1,
-  "scheme": "exact",
-  "network": "base",
-  "payload": {
-    "signature": "0x...",
-    "authorization": {
-      "from": "0xUserWallet",
-      "to": "0xMerchantAddress",
-      "value": "120000000",
-      "validAfter": "0",
-      "validBefore": "1234567890",
-      "nonce": "0x..."
+  "x402.payment.status": "payment-submitted",
+  "x402.payment.payload": {
+    "x402Version": 1,
+    "scheme": "exact",
+    "network": "base",
+    "payload": {
+      "signature": "0x...",
+      "authorization": {
+        "from": "0xUserWallet",
+        "to": "0xMerchantAddress",
+        "value": "120000000",
+        "validAfter": "0",
+        "validBefore": "1234567890",
+        "nonce": "0x..."
+      }
     }
   }
 }
@@ -397,10 +390,10 @@ The wallet address is resolved automatically via `whoami`. The resulting base64u
 Creates a new mnemonic-based local wallet.
 
 ```bash
-a2a-wallet wallet create [name] [--path <derivation-path>]
+a2a-wallet wallet create [--name <name>] [--path <derivation-path>]
 ```
 
-- `name` is auto-generated (`wallet-1`, `wallet-2`, …) if omitted.
+- `--name` is auto-generated (`wallet-1`, `wallet-2`, …) if omitted.
 - The first wallet created is automatically set as the default.
 - If no mnemonic wallet exists yet, a new random mnemonic is generated.
 - If a mnemonic wallet already exists, the same mnemonic is reused and the next address index is derived automatically.
@@ -408,6 +401,7 @@ a2a-wallet wallet create [name] [--path <derivation-path>]
 
 | Option | Description |
 |--------|-------------|
+| `--name <name>` | Wallet name (auto-generated if omitted) |
 | `--path <path>` | BIP-44 derivation path (e.g. `m/44'/60'/0'/0/2`) |
 
 ```
@@ -437,26 +431,34 @@ a2a-wallet wallet import [name] --private-key <key>
 
 ### `wallet list`
 
-Lists all local wallets. The default wallet is marked with `*`.
+Lists all saved wallets — local and custodial. The default wallet is marked with `*`.
 
 ```bash
 a2a-wallet wallet list [--json]
 ```
 
 ```
-  NAME      ADDRESS                                     TYPE         CREATED AT
-* wallet-1  0x...                                       mnemonic     2026-03-13 09:00:00  (m/44'/60'/0'/0/0)
-  wallet-2  0x...                                       mnemonic     2026-03-13 09:00:01  (m/44'/60'/0'/0/1)
-  my-key    0x...                                       private-key  2026-03-13 09:00:02
+  NAME         ADDRESS                                     TYPE         CREATED AT
+* wallet-1     0x...                                       mnemonic     2026-03-13 09:00:00  (m/44'/60'/0'/0/0)
+  wallet-2     0x...                                       mnemonic     2026-03-13 09:00:01  (m/44'/60'/0'/0/1)
+  my-key       0x...                                       private-key  2026-03-13 09:00:02
+  (custodial)  0x...                                       custodial    -
 ```
+
+The custodial row shows the linked address if logged in, or a reason string (`(not connected)`, `(token expired)`, `(timed out)`, `(error)`) if not.
 
 ### `wallet use`
 
-Sets the named wallet as the default. Saves `defaultWallet` to `~/.a2a-wallet/config.json`.
+Sets the active wallet for signing. Saves `defaultWallet` to `~/.a2a-wallet/config.json`.
 
 ```bash
-a2a-wallet wallet use <name>
+a2a-wallet wallet use <name>             # set a local wallet as default
+a2a-wallet wallet use --custodial        # switch to the custodial (web) wallet
 ```
+
+| Option | Description |
+|--------|-------------|
+| `--custodial` | Use the custodial wallet instead of a local wallet |
 
 ### `wallet export`
 
@@ -466,21 +468,77 @@ Exporting private keys directly is not supported. Prints the file paths to copy 
 a2a-wallet wallet export
 ```
 
----
+### `status`
 
-### `whoami`
-
-Shows the authenticated user's ID and linked wallet address.
+Shows login status (logged-in / expired / not-logged-in), the default wallet (type, name, address), and the web app URL.
 
 ```bash
-a2a-wallet whoami [--token <jwt>] [--url <url>] [--json]
+a2a-wallet status [--url <url>] [--json]
+```
+
+**Human-readable output:**
+
+```
+  Custodial Wallet
+  ──────────────────────────────────────────────
+  Status    logged in
+  Expires   3/21/2026, 12:00:00 AM
+  URL       https://wallet.a2a-x402.xyz
+
+  Default Wallet
+  ──────────────────────────────────────────────
+  Type      local
+  Name      wallet-1
+  Address   0x...
+  Path      m/44'/60'/0'/0/0
 ```
 
 | Option | Description |
 |--------|-------------|
-| `--token <jwt>` | One-time token for this request only |
 | `--url <url>` | Web app URL for this request only |
-| `--json` | Output pure JSON to stdout |
+| `--json` | Output as JSON |
+
+---
+
+### `auth device start` [DEPRECATED]
+
+> Use `wallet connect` instead.
+
+Starts a device authorization session (RFC 8628) and prints the verification URL and user code.
+
+```bash
+a2a-wallet auth device start [--url <url>] [--json]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--url <url>` | Web app URL (overrides config) |
+| `--json` | Output the full RFC 8628 authorization response as JSON |
+
+### `auth device poll` [DEPRECATED]
+
+> Use `wallet connect --poll` instead.
+
+Polls until the device login is approved, then saves the JWT token to config.
+
+```bash
+a2a-wallet auth device poll --device-code <code> [--url <url>]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--device-code <code>` | Device code returned by `auth device start` |
+| `--url <url>` | Web app URL (overrides config) |
+
+### `auth logout` [DEPRECATED]
+
+> Use `wallet disconnect` instead.
+
+Removes the saved JWT token from config.
+
+```bash
+a2a-wallet auth logout
+```
 
 ### `a2a auth`
 
@@ -558,6 +616,8 @@ a2a-wallet a2a send <url> <message> [options]
 | Option | Description |
 |--------|-------------|
 | `--context-id <id>` | Continue an existing conversation context |
+| `--task-id <id>` | Task ID to send message to (for payment or multi-turn) |
+| `--metadata <json>` | JSON metadata to attach to the message (e.g. x402 payment payload) |
 | `--bearer <token>` | Bearer token for agent authentication |
 | `--json` | Output raw JSON (single line) |
 
@@ -654,7 +714,7 @@ The CLI is designed for programmatic use by AI Agents:
 - Errors are written to stderr
 - Exit codes: `0` success, `1` failure
 - Inject the token via `A2A_WALLET_TOKEN` to avoid persistent config
-- If the token is expired, the CLI detects it locally before making any network request and exits with an error pointing to the login commands
+- If the token is expired, the CLI detects it locally before making any network request and exits with an error pointing to `wallet connect`
 
 **Initial setup (one-time)**
 
@@ -662,14 +722,14 @@ Use the two-step device flow for agent setup — no local server required:
 
 ```bash
 # Step 1: get the login URL and show it to the user
-a2a-wallet auth device start --json
-# → {"nonce":"abc123","loginUrl":"https://...device-login?nonce=abc123"}
+a2a-wallet wallet connect --json
+# → {"device_code":"...","user_code":"ABCD-1234","verification_uri":"https://...","verification_uri_complete":"https://...?user_code=ABCD-1234"}
 
-# Step 2: once the user has been notified, start polling
-a2a-wallet auth device poll --nonce abc123
-# → Waiting for authentication (up to 2 minutes)...
+# Step 2: once the user has completed login, poll for the token
+a2a-wallet wallet connect --poll <device_code>
+# → Waiting for authorization (up to 120s)...
 # → Token saved. You are now logged in.
-# → This token is valid for 5 more minutes.
+# → Active wallet set to custodial.
 ```
 
 Once logged in, copy the token from `~/.a2a-wallet/config.json` and set it in the agent's environment as `A2A_WALLET_TOKEN`.
@@ -693,7 +753,7 @@ A2A_WALLET_TOKEN=<jwt> a2a-wallet x402 sign \
 ```json
 {
   "name": "x402_sign",
-  "description": "Sign an x402 PaymentRequirements to create a PaymentPayload for on-chain payment authorization.",
+  "description": "Sign an x402 PaymentRequirements and return a ready-to-use A2A message.metadata object for on-chain payment authorization.",
   "inputSchema": {
     "type": "object",
     "required": ["scheme", "network", "asset", "payTo", "amount"],

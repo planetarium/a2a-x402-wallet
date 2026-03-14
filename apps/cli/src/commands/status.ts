@@ -22,7 +22,7 @@ function row(label: string, value: string): void {
 
 export function makeStatusCommand(): Command {
   return new Command('status')
-    .description('Show authentication status, default wallet, and wallet address')
+    .description('Show login status, default wallet, and wallet address')
     .option('--url <url>', 'Web app URL (overrides config)')
     .option('--json', 'Output as JSON')
     .action(async (opts: { url?: string; json?: boolean }) => {
@@ -90,7 +90,7 @@ export function makeStatusCommand(): Command {
       }
 
       // ── Human-readable output ────────────────────────────────────────────
-      console.log('\n  Auth');
+      console.log('\n  Custodial Wallet');
       console.log(DIVIDER);
       const statusLabel: Record<AuthStatus, string> = {
         'logged-in': 'logged in',
@@ -113,7 +113,7 @@ export function makeStatusCommand(): Command {
         if (wallet.address) row('Address', wallet.address);
         if (wallet.derivationPath) row('Path', wallet.derivationPath);
         if (wallet.type === 'custodial' && authStatus !== 'logged-in') {
-          row('Address', '(login required — run "auth login")');
+          row('Address', '(login required — run "wallet connect")');
         }
         if (wallet.addressError) {
           row('Address', `(error: ${wallet.addressError})`);

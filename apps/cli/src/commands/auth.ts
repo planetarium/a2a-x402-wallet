@@ -1,9 +1,8 @@
 import { Command } from 'commander';
-import { createServer } from 'http';
 import { getEffectiveConfig, readConfig, writeConfig } from '../store/config.js';
 import { tryOpenBrowser } from '../utils.js';
 
-function logTokenSaved(token: string): void {
+export function logTokenSaved(token: string): void {
   console.log('Token saved. You are now logged in.');
   try {
     const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8')) as { exp?: number };
@@ -29,88 +28,28 @@ function logTokenSaved(token: string): void {
 }
 
 
-const POLL_INTERVAL_MS = 5_000;
-const TIMEOUT_MS = 120_000;
+export const POLL_INTERVAL_MS = 5_000;
+export const TIMEOUT_MS = 120_000;
 
 export function makeAuthCommand(): Command {
-  const cmd = new Command('auth').description('Manage authentication — log in, log out, or use device flow (login, device, logout)');
+  const cmd = new Command('auth')
+    .description(
+      '[DEPRECATED] Manage authentication — use "wallet connect / disconnect" instead (device, logout)\n\n' +
+      'DEPRECATION REASON:\n' +
+      'This command was originally designed to authenticate with the custodial wallet service.\n' +
+      'With the introduction of the `wallet` command, connecting to a custodial wallet is now\n' +
+      'handled automatically as part of the wallet workflow.\n\n' +
+      'Use `wallet connect` to log in to the custodial wallet service.\n' +
+      'Use `wallet disconnect` to log out.\n\n' +
+      'This command will be removed in a future version.',
+    );
 
-  cmd
-    .command('login')
-    .description('Open a browser to log in and save the JWT token to config')
-    .option('--url <url>', 'Web app URL to open (overrides config)')
-    .option('--token <token>', 'Save a token directly without opening a browser')
-    .action(async (opts: { url?: string; token?: string }) => {
-      // Direct token injection
-      if (opts.token) {
-        const existing = readConfig();
-        writeConfig({ ...existing, token: opts.token });
-        logTokenSaved(opts.token);
-        return;
-      }
-
-      const cfg = getEffectiveConfig({ url: opts.url });
-      const baseUrl = cfg.url;
-
-      const server = createServer();
-      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-      const address = server.address();
-      if (!address || typeof address === 'string') {
-        console.error('Error: Could not start local callback server.');
-        process.exit(1);
-      }
-      const port = address.port;
-      const callbackUrl = `http://127.0.0.1:${port}/callback`;
-
-      const loginUrl = `${baseUrl}/cli-login?callback=${encodeURIComponent(callbackUrl)}`;
-      console.log(`Opening browser for login...`);
-      tryOpenBrowser(loginUrl);
-      console.log(`If the browser did not open, visit:\n  ${loginUrl}`);
-      console.log(`Waiting for authentication (up to 2 minutes)...`);
-
-      const token = await new Promise<string>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          server.close();
-          reject(new Error('Login timed out after 2 minutes.'));
-        }, TIMEOUT_MS);
-
-        server.on('request', (req, res) => {
-          const reqUrl = new URL(req.url ?? '/', `http://127.0.0.1:${port}`);
-          if (reqUrl.pathname !== '/callback') {
-            res.writeHead(404).end();
-            return;
-          }
-
-          const tok = reqUrl.searchParams.get('token');
-          const error = reqUrl.searchParams.get('error');
-
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(`<!DOCTYPE html><html><body>
-            <p style="font-family:sans-serif;text-align:center;margin-top:4rem">
-              ${tok ? 'Login successful. You may close this tab.' : `Login failed: ${error ?? 'unknown error'}. You may close this tab.`}
-            </p>
-            <script>window.close()</script>
-          </body></html>`);
-
-          server.close();
-          clearTimeout(timer);
-
-          if (tok) {
-            resolve(tok);
-          } else {
-            reject(new Error(`Login failed: ${error ?? 'unknown error'}`));
-          }
-        });
-      }).catch((err: Error) => {
-        console.error(`Error: ${err.message}`);
-        process.exit(1);
-      }) as string;
-
-      const existing = readConfig();
-      writeConfig({ ...existing, token });
-      logTokenSaved(token);
-      process.exit(0);
-    });
+  cmd.hook('preAction', () => {
+    process.stderr.write(
+      'Warning: `auth` is deprecated and will be removed in a future version.\n' +
+      'Use `wallet connect` to log in and `wallet disconnect` to log out.\n',
+    );
+  });
 
   const deviceCmd = new Command('device').description('Non-interactive device flow login for agents/scripts (start, poll)');
 

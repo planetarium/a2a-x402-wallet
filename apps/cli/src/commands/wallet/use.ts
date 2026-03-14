@@ -10,7 +10,7 @@ export function makeWalletUseCommand(): Command {
     .action(async (name: string | undefined, opts: { custodial?: boolean }) => {
       if (opts.custodial) {
         setDefaultWallet({ type: 'custodial' });
-        console.log('Active wallet set to custodial (web). Run `a2a-wallet auth login` if not already logged in.');
+        console.log('Active wallet set to custodial (web). Run `a2a-wallet wallet connect` if not already logged in.');
         return;
       }
 

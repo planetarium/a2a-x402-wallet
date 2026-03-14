@@ -1,7 +1,6 @@
 const LOGIN_HINT =
-  'Run `a2a-wallet auth device start` to begin a new login session.\n' +
-  'It will print a login URL — share it with the user so they can authenticate.\n' +
-  'Once the user has logged in, run `a2a-wallet auth device poll --nonce <nonce>` to save the token.';
+  'Run `a2a-wallet wallet connect` to log in to the custodial wallet service.\n' +
+  'It will open a browser for authentication — or use `--poll <device-code>` for headless login.';
 
 export function exitNotLoggedIn(): never {
   console.error('Error: Not logged in.');
@@ -38,13 +37,13 @@ export interface X402SignRequestBody {
 
 const TIMEOUT_MS = 10_000;
 
-async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (err) {
-    wrapFetchError(err);
+    wrapFetchError(err, timeoutMs);
   } finally {
     clearTimeout(timer);
   }
@@ -66,9 +65,9 @@ async function handleResponse(res: Response): Promise<unknown> {
   return data;
 }
 
-function wrapFetchError(err: unknown): never {
+function wrapFetchError(err: unknown, timeoutMs = TIMEOUT_MS): never {
   if (err instanceof Error && err.name === 'AbortError') {
-    throw new Error(`Request timed out after ${TIMEOUT_MS / 1000}s`);
+    throw new Error(`Request timed out after ${timeoutMs / 1000}s`);
   }
   throw err;
 }
@@ -99,10 +98,10 @@ export async function callX402Sign(baseUrl: string, token: string, body: X402Sig
   return handleResponse(res);
 }
 
-export async function callWhoami(baseUrl: string, token: string): Promise<unknown> {
+export async function callWhoami(baseUrl: string, token: string, timeoutMs?: number): Promise<unknown> {
   assertTokenNotExpired(token);
   const res = await fetchWithTimeout(`${baseUrl}/api/me`, {
     headers: { 'Authorization': `Bearer ${token}` },
-  });
+  }, timeoutMs);
   return handleResponse(res);
 }
