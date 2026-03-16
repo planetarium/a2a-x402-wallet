@@ -13,7 +13,7 @@
 | **A2A Agent Connectivity** | Connect to external A2A agents via device flow OAuth2 — authenticate once and interact seamlessly across sessions |
 | **CLI as Agent Tool** | The `a2a-wallet` CLI is designed to be used directly by AI agents as a tool, enabling fully automated signing workflows |
 
-Users connect their wallet via the web app and perform x402 payment signing through the CLI. AI Agents can use the CLI as a Tool to automatically generate signed `PaymentPayload` objects whenever x402 payment is required.
+Users create a local wallet with the CLI and perform x402 payment signing locally. AI Agents can use the CLI as a Tool to automatically generate signed `PaymentPayload` objects whenever x402 payment is required. A custodial option is also available via the web app for users who prefer server-side signing.
 
 ## Quick Start
 
@@ -68,14 +68,26 @@ a2a-x402-wallet/
 ├── skills/
 │   └── a2a-wallet/   # Agent Skill (YAML + Markdown, for Claude Code etc.)
 └── docs/
-    ├── a2a-x402-spec-v0.2.md   # A2A x402 protocol specification
-    └── cli-requirements.md     # CLI requirements document
+    ├── a2a-x402-spec-v0.2.md         # A2A x402 protocol specification
+    └── siwe-bearer-auth/v0.1/SPEC.md # SIWE Bearer Auth extension spec
 ```
 
 ## How It Works
 
+**Local wallet (default)**
+
 ```
-User (web login)
+User runs `wallet create`
+  └─► Private key stored locally (~/.a2a-wallet/)
+        └─► Agent or user calls CLI to sign
+              └─► CLI signs locally with the private key
+                    └─► Return PaymentPayload
+```
+
+**Custodial wallet (optional)**
+
+```
+User logs in via `wallet connect` (web app)
   └─► Issue accessToken (JWT)
         └─► Save token to CLI
               └─► Agent or user calls CLI to sign
@@ -83,8 +95,13 @@ User (web login)
                           └─► Return PaymentPayload
 ```
 
+**Local wallet steps:**
+1. Run `a2a-wallet wallet create` to generate a local key (set as default automatically)
+2. Call `a2a-wallet x402 sign` — signing happens locally, no network request required
+
+**Custodial wallet steps:**
 1. User logs in with Privy (social or email) and delegates their embedded wallet to the backend
-2. Issue accessToken (JWT) and save it to the CLI
+2. Issue accessToken (JWT) and save it to the CLI via `wallet connect`
 3. Call `a2a-wallet x402 sign` to request x402 signing
 4. Web app performs EIP-712 signing via the user's wallet and returns a `PaymentPayload`
 

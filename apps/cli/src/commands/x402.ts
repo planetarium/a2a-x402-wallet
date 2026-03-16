@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { getEffectiveConfig } from '../store/config.js';
-import { callX402Sign, exitNotLoggedIn } from '../api.js';
+import type { PaymentRequirements } from '@a2a-x402-wallet/x402';
+import { resolveSigner } from '../wallet/signer.js';
 
 export function makeX402Command(): Command {
   const cmd = new Command('x402').description('x402 payment protocol commands (sign)');
@@ -23,7 +23,9 @@ export function makeX402Command(): Command {
     .requiredOption('--extra-name <name>', 'EIP-712 domain name from token contract (e.g. "USDC")')
     .requiredOption('--extra-version <version>', 'EIP-712 domain version from token contract (e.g. "2")')
     .option('--valid-for <seconds>', 'Signature validity window in seconds (sets maxTimeoutSeconds)', '3600')
-    .option('--token <jwt>', 'JWT for this request only (overrides config)')
+    .option('--wallet <name>', 'Local wallet to sign with (overrides default wallet)')
+    .option('--custodial', 'Use the custodial wallet (overrides default wallet)')
+    .option('--token <jwt>', 'JWT for custodial signing (overrides config)')
     .option('--url <url>', 'Web app URL for this request only (overrides config)')
     .option('--json', 'Output pure JSON to stdout (recommended for Agent/MCP use)')
     .action(async (opts: {
@@ -35,14 +37,12 @@ export function makeX402Command(): Command {
       extraName: string;
       extraVersion: string;
       validFor: string;
+      wallet?: string;
+      custodial?: boolean;
       token?: string;
       url?: string;
       json?: boolean;
     }) => {
-      const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
-
-      if (!cfg.token) exitNotLoggedIn();
-
       const maxTimeoutSeconds = parseInt(opts.validFor, 10);
       if (isNaN(maxTimeoutSeconds) || maxTimeoutSeconds <= 0) {
         console.error('Error: --valid-for must be a positive integer (seconds)');
@@ -50,24 +50,22 @@ export function makeX402Command(): Command {
       }
 
       try {
-        const result = await callX402Sign(cfg.url, cfg.token, {
-          paymentRequirements: {
-            scheme: opts.scheme,
-            network: opts.network,
-            asset: opts.asset,
-            payTo: opts.payTo,
-            maxAmountRequired: opts.amount,
-            maxTimeoutSeconds,
-            extra: {
-              name: opts.extraName,
-              version: opts.extraVersion,
-            },
-          },
-        });
+        const signer = await resolveSigner({ wallet: opts.wallet, custodial: opts.custodial, token: opts.token, url: opts.url });
 
+        const requirements: PaymentRequirements = {
+          scheme: opts.scheme,
+          network: opts.network,
+          asset: opts.asset as `0x${string}`,
+          payTo: opts.payTo as `0x${string}`,
+          maxAmountRequired: opts.amount,
+          maxTimeoutSeconds,
+          extra: { name: opts.extraName, version: opts.extraVersion },
+        };
+
+        const payload = await signer.signX402Payment(requirements);
         const metadata = {
           'x402.payment.status': 'payment-submitted',
-          'x402.payment.payload': result,
+          'x402.payment.payload': payload,
         };
 
         if (opts.json) {

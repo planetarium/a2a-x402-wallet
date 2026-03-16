@@ -146,8 +146,8 @@ export async function readMessageInput(filePath?: string): Promise<string> {
   });
 }
 
-export async function resolveWalletAddress(url: string, token: string): Promise<string> {
-  const me = await callWhoami(url, token);
+export async function resolveWalletAddress(url: string, token: string, timeoutMs?: number): Promise<string> {
+  const me = await callWhoami(url, token, timeoutMs);
   const linkedAccounts = (
     me !== null &&
     typeof me === 'object' &&

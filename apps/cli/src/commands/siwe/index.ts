@@ -1,14 +1,12 @@
 import { Command } from 'commander';
 import { recoverMessageAddress, getAddress, isHex, size } from 'viem';
-import { getEffectiveConfig } from '../../store/config.js';
-import { callSign, exitNotLoggedIn } from '../../api.js';
+import { resolveSigner } from '../../wallet/signer.js';
 import {
   makeSiweMessage,
   encodeToken,
   decodeToken,
   parseSiweMessage,
   readMessageInput,
-  resolveWalletAddress,
   die,
 } from './helpers.js';
 import type { SiweFields, SiweTokenPayload } from './types.js';
@@ -37,13 +35,15 @@ export function makeSiweCommand(): Command {
   cmd
     .command('prepare')
     .description('Generate an unsigned EIP-4361 SIWE message for manual signing')
-    .option('--address <address>', 'Ethereum address (default: your linked wallet address)')
+    .option('--address <address>', 'Ethereum address (skips wallet resolution if provided)')
     .requiredOption('--domain <host>', 'Domain (e.g. app.example.com)')
     .requiredOption('--uri <uri>', 'URI (e.g. https://app.example.com)')
     .option('--ttl <duration>', 'Expiration duration (30m, 1h, 7d)', '7d')
     .option('--chain-id <n>', 'EIP-155 chain ID', '1')
     .option('--statement <text>', 'Statement text', 'I accept the Terms of Service')
-    .option('--token <jwt>', 'JWT for this request only (overrides config)')
+    .option('--wallet <name>', 'Local wallet to use (overrides default wallet)')
+    .option('--custodial', 'Use the custodial wallet (overrides default wallet)')
+    .option('--token <jwt>', 'JWT for custodial wallet (overrides config)')
     .option('--url <url>', 'Web app URL for this request only (overrides config)')
     .action(async (opts: {
       address?: string;
@@ -52,34 +52,34 @@ export function makeSiweCommand(): Command {
       ttl: string;
       chainId: string;
       statement: string;
+      wallet?: string;
+      custodial?: boolean;
       token?: string;
       url?: string;
     }) => {
-      let address = opts.address;
-
-      if (!address) {
-        const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
-        if (!cfg.token) exitNotLoggedIn();
-
-        address = await resolveWalletAddress(cfg.url, cfg.token).catch((err: unknown) => {
-          die(err instanceof Error ? err.message : String(err));
-        });
-      }
-
-      let message: string;
       try {
-        message = makeSiweMessage(
-          address,
-          opts.domain,
-          opts.uri,
-          opts.ttl,
-          opts.statement,
-          parseInt(opts.chainId, 10),
-        );
+        const address = opts.address
+          ?? await resolveSigner({ wallet: opts.wallet, custodial: opts.custodial, token: opts.token, url: opts.url })
+              .then((s) => s.getAddress())
+              .catch((err: unknown) => { die(err instanceof Error ? err.message : String(err)); });
+
+        let message: string;
+        try {
+          message = makeSiweMessage(
+            address,
+            opts.domain,
+            opts.uri,
+            opts.ttl,
+            opts.statement,
+            parseInt(opts.chainId, 10),
+          );
+        } catch (err) {
+          die(err instanceof Error ? err.message : String(err));
+        }
+        console.log(message);
       } catch (err) {
         die(err instanceof Error ? err.message : String(err));
       }
-      console.log(message);
     });
 
   // siwe encode
@@ -183,13 +183,15 @@ export function makeSiweCommand(): Command {
   // siwe auth
   cmd
     .command('auth')
-    .description('Generate, sign, and encode a SIWE token in one step using the linked wallet')
+    .description('Generate, sign, and encode a SIWE token in one step using the active wallet')
     .requiredOption('--domain <host>', 'Domain')
     .requiredOption('--uri <uri>', 'URI')
     .option('--ttl <duration>', 'Expiration duration (30m, 1h, 7d)', '7d')
     .option('--chain-id <n>', 'EIP-155 chain ID', '1')
     .option('--statement <text>', 'Statement text', 'I accept the Terms of Service')
-    .option('--token <jwt>', 'JWT for this request only (overrides config)')
+    .option('--wallet <name>', 'Local wallet to sign with (overrides default wallet)')
+    .option('--custodial', 'Use the custodial wallet (overrides default wallet)')
+    .option('--token <jwt>', 'JWT for custodial signing (overrides config)')
     .option('--url <url>', 'Web app URL for this request only (overrides config)')
     .option('--json', 'Output as JSON { token: "..." }')
     .action(async (opts: {
@@ -198,49 +200,40 @@ export function makeSiweCommand(): Command {
       ttl: string;
       chainId: string;
       statement: string;
+      wallet?: string;
+      custodial?: boolean;
       token?: string;
       url?: string;
       json?: boolean;
     }) => {
-      const cfg = getEffectiveConfig({ token: opts.token, url: opts.url });
-
-      if (!cfg.token) exitNotLoggedIn();
-
-      const address = await resolveWalletAddress(cfg.url, cfg.token).catch((err: unknown) => {
-        die(err instanceof Error ? err.message : String(err));
-      });
-
-      let message: string;
       try {
-        message = makeSiweMessage(
-          address,
-          opts.domain,
-          opts.uri,
-          opts.ttl,
-          opts.statement,
-          parseInt(opts.chainId, 10),
-        );
+        const signer = await resolveSigner({ wallet: opts.wallet, custodial: opts.custodial, token: opts.token, url: opts.url });
+        const address = await signer.getAddress();
+
+        let message: string;
+        try {
+          message = makeSiweMessage(
+            address,
+            opts.domain,
+            opts.uri,
+            opts.ttl,
+            opts.statement,
+            parseInt(opts.chainId, 10),
+          );
+        } catch (err) {
+          die(err instanceof Error ? err.message : String(err));
+        }
+
+        const signature = await signer.signMessage(message);
+        const encoded = encodeToken(message.trimEnd(), signature);
+
+        if (opts.json) {
+          console.log(JSON.stringify({ token: encoded }, null, 2));
+        } else {
+          console.log(encoded);
+        }
       } catch (err) {
         die(err instanceof Error ? err.message : String(err));
-      }
-
-      let signResult: Record<string, unknown>;
-      try {
-        signResult = await callSign(cfg.url, cfg.token, message) as Record<string, unknown>;
-      } catch (err) {
-        die(err instanceof Error ? err.message : String(err));
-      }
-
-      const signature = signResult['signature'] as string;
-      if (!signature) {
-        die('signing API did not return a signature');
-      }
-
-      const encoded = encodeToken(message.trimEnd(), signature);
-      if (opts.json) {
-        console.log(JSON.stringify({ token: encoded }, null, 2));
-      } else {
-        console.log(encoded);
       }
     });
 
