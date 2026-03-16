@@ -98,6 +98,15 @@ export async function callX402Sign(baseUrl: string, token: string, body: X402Sig
   return handleResponse(res);
 }
 
+export async function callFaucet(baseUrl: string, address: string): Promise<unknown> {
+  const res = await fetchWithTimeout(`${baseUrl}/api/faucet`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address }),
+  });
+  return handleResponse(res);
+}
+
 export async function callWhoami(baseUrl: string, token: string, timeoutMs?: number): Promise<unknown> {
   assertTokenNotExpired(token);
   const res = await fetchWithTimeout(`${baseUrl}/api/me`, {

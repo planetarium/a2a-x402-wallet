@@ -148,20 +148,34 @@ Returns the authenticated user's information for the current accessToken.
 
 ### `POST /api/faucet`
 
-Sends 1 testnet USDC (Base Sepolia) to the authenticated user's wallet. Rate-limited to prevent abuse.
+Sends 1 testnet USDC (Base Sepolia) to the given address. No authentication required. Rate-limited per address to prevent abuse.
 
-**Authorization**: Privy token
+**Authorization**: None
 
-**Request**: no body
+**Request body**:
+```json
+{ "address": "0x..." }
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `address` | Yes | Valid Ethereum address to receive USDC |
 
 **Response**:
 ```json
-{ "transaction": "0x..." }
+{
+  "success": true,
+  "transaction": "0x...",
+  "network": "base-sepolia",
+  "recipient": "0x...",
+  "amount": "1"
+}
 ```
 
 **Errors**:
-- `400` — Wallet balance is already above the threshold (0.1 USDC)
-- `401` — Invalid Privy token
+- `400` — Missing or invalid Ethereum address, or wallet balance is already above the threshold (0.1 USDC)
+- `429` — Rate limit exceeded
+- `503` — Faucet not configured
 - `500` — Transfer failed
 
 ---

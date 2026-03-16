@@ -28,7 +28,7 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 | `status` | Show default wallet address and web app URL |
 | `config` | Get or set config values (`token`, `url`) |
 | `balance` | Show USDC balance for the active wallet on a given network |
-| `faucet` | Request testnet tokens |
+| `faucet` | Request testnet USDC (Base Sepolia) directly from the CLI — no browser or auth required |
 | `update` | Update the CLI binary |
 
 ## Agent Card Extensions

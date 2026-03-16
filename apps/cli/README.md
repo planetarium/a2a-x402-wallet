@@ -170,7 +170,7 @@ a2a-wallet
 │   └── get [key]          Show config values
 ├── status                 Show login status, default wallet, and wallet address
 ├── balance                Show wallet balance
-├── faucet                 Request testnet tokens
+├── faucet                 Request testnet USDC (Base Sepolia) directly from the CLI
 └── update                 Update a2a-wallet to the latest version
 ```
 
@@ -521,6 +521,42 @@ a2a-wallet a2a cancel <url> <taskId> [options]
 |--------|-------------|
 | `--bearer <token>` | Bearer token for agent authentication |
 | `--json` | Output raw JSON (single line) |
+
+### `faucet`
+
+Requests 1 testnet USDC (Base Sepolia) directly from the faucet API. No authentication required. The recipient address is resolved from the active wallet unless overridden with `--address`.
+
+```bash
+a2a-wallet faucet [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--address <address>` | Recipient address (overrides wallet resolution) |
+| `--wallet <name>` | Local wallet to use (overrides default wallet) |
+| `--custodial` | Use the custodial wallet (overrides default wallet) |
+| `--token <jwt>` | JWT for custodial wallet (overrides config) |
+| `--url <url>` | Web app URL (overrides config) |
+| `--json` | Output pure JSON to stdout |
+
+**Output example (human-readable):**
+
+```
+Requesting faucet for 0x...
+Success! 1 USDC sent to 0x...
+Network:     base-sepolia
+Transaction: 0x...
+```
+
+**Output example (`--json`):**
+
+```json
+{ "success": true, "transaction": "0x...", "network": "base-sepolia", "recipient": "0x...", "amount": "1" }
+```
+
+> **Eligibility**: the recipient address must have a USDC balance below 0.1 USDC. Rate-limited to 3 requests per address per hour.
+
+---
 
 ### `update`
 
