@@ -15,6 +15,43 @@
 
 Users create a local wallet with the CLI and perform x402 payment signing locally. AI Agents can use the CLI as a Tool to automatically generate signed `PaymentPayload` objects whenever x402 payment is required. A custodial option is also available via the web app for users who prefer server-side signing.
 
+## Security Warning
+
+> [!WARNING]
+> **Using this tool involves real cryptographic keys and on-chain assets. Read this section carefully before proceeding.**
+
+### Local Wallet
+
+The local wallet stores your private key as a **plain file on disk** (`~/.a2a-wallet/`). When used as an AI agent tool, the agent runtime has full access to the local filesystem and can read this file.
+
+- **Do NOT store significant amounts of assets** in a local wallet used with this CLI.
+- **Do NOT import or restore a wallet that holds significant assets** into this CLI.
+- Any key stored here is only as secure as the machine and any agent/process that has filesystem access.
+- If a private key is leaked or stolen, **all assets in that wallet are unrecoverable**. Responsibility lies entirely with the user.
+
+### Custodial Wallet
+
+The custodial wallet option uses [Privy](https://privy.io) for server-side key management. While Privy is a reputable provider, **this project does not guarantee the security of your custodial wallet**. The key management infrastructure is operated by a third party and by this project's web service.
+
+- **Do NOT store significant amounts of assets** in the custodial wallet.
+- Security incidents, service outages, or misconfigurations could result in loss of funds. Responsibility lies entirely with the user.
+
+**These wallets are intended for small, automated micro-payments. Treat them as hot wallets with a limited balance — not as a primary or savings wallet.**
+
+### Legal Notice
+
+> [!CAUTION]
+> **This software is experimental and intended for testing and development purposes only. Do not use it with production funds or significant on-chain assets.**
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS, OR OPERATORS OF THIS PROJECT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF THIS SOFTWARE, INCLUDING BUT NOT LIMITED TO LOSS OF FUNDS, LOSS OF DATA, UNAUTHORIZED ACCESS TO CRYPTOGRAPHIC KEYS, OR SERVICE INTERRUPTION.
+
+By using this software, you acknowledge and agree that:
+
+- You are using **experimental software** entirely at your own risk.
+- You will **not store significant assets** in any wallet managed by this tool.
+- Any loss of funds resulting from use of this software — including key theft, service failure, software bugs, or misuse — is **solely your responsibility**.
+- The project maintainers provide **no guarantees** of security, uptime, or correctness.
+
 ## Quick Start
 
 ### Install the CLI
