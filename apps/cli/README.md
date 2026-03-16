@@ -63,6 +63,44 @@ pnpm cli:uninstall
 
 **Windows** — delete `a2a-wallet.exe` from the folder where you placed it.
 
+## Security Warning
+
+> [!WARNING]
+> **Using this CLI involves real cryptographic keys and on-chain assets. Read this section carefully before proceeding.**
+
+### Local Wallet Risk
+
+The local wallet stores your private key as a **plain file on disk** at `~/.a2a-wallet/`. When an AI agent uses this CLI as a tool, the agent runtime has full read access to the local filesystem and can access this file.
+
+- **Do NOT store significant amounts of assets** in a local wallet used with this CLI.
+- **Do NOT import or restore a wallet that holds significant assets** into this CLI.
+- The private key file is protected only by local filesystem permissions. Any process, agent, or user with read access to your home directory can potentially read it.
+- If a private key is leaked or an unauthorized party gains access, **all assets in that wallet are permanently unrecoverable**. The user bears full responsibility for any loss.
+
+### Custodial Wallet Risk
+
+The custodial wallet uses [Privy](https://privy.io) for server-side key management, in combination with this project's web service. **This project does not guarantee the security of your custodial wallet.**
+
+- **Do NOT store significant amounts of assets** in the custodial wallet.
+- Key management is delegated to a third-party provider and a hosted service — both are outside your direct control.
+- Service outages, security incidents, or misconfigurations could result in loss of funds. The user bears full responsibility for any loss.
+
+**Both wallet types are designed for small, automated micro-payments only. Treat them as hot wallets with a strictly limited balance — never as primary or savings wallets.**
+
+### Legal Notice
+
+> [!CAUTION]
+> **This software is experimental and intended for testing and development purposes only. Do not use it with production funds or significant on-chain assets.**
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS, OR OPERATORS OF THIS PROJECT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OF THIS SOFTWARE, INCLUDING BUT NOT LIMITED TO LOSS OF FUNDS, LOSS OF DATA, UNAUTHORIZED ACCESS TO CRYPTOGRAPHIC KEYS, OR SERVICE INTERRUPTION.
+
+By using this software, you acknowledge and agree that:
+
+- You are using **experimental software** entirely at your own risk.
+- You will **not store significant assets** in any wallet managed by this tool.
+- Any loss of funds resulting from use of this software — including key theft, service failure, software bugs, or misuse — is **solely your responsibility**.
+- The project maintainers provide **no guarantees** of security, uptime, or correctness.
+
 ## Quick Start
 
 ### 1. Set up a wallet
@@ -170,7 +208,7 @@ a2a-wallet
 │   └── get [key]          Show config values
 ├── status                 Show login status, default wallet, and wallet address
 ├── balance                Show wallet balance
-├── faucet                 Request testnet tokens
+├── faucet                 Request testnet USDC (Base Sepolia) directly from the CLI
 └── update                 Update a2a-wallet to the latest version
 ```
 
@@ -521,6 +559,42 @@ a2a-wallet a2a cancel <url> <taskId> [options]
 |--------|-------------|
 | `--bearer <token>` | Bearer token for agent authentication |
 | `--json` | Output raw JSON (single line) |
+
+### `faucet`
+
+Requests 1 testnet USDC (Base Sepolia) directly from the faucet API. No authentication required. The recipient address is resolved from the active wallet unless overridden with `--address`.
+
+```bash
+a2a-wallet faucet [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--address <address>` | Recipient address (overrides wallet resolution) |
+| `--wallet <name>` | Local wallet to use (overrides default wallet) |
+| `--custodial` | Use the custodial wallet (overrides default wallet) |
+| `--token <jwt>` | JWT for custodial wallet (overrides config) |
+| `--url <url>` | Web app URL (overrides config) |
+| `--json` | Output pure JSON to stdout |
+
+**Output example (human-readable):**
+
+```
+Requesting faucet for 0x...
+Success! 1 USDC sent to 0x...
+Network:     base-sepolia
+Transaction: 0x...
+```
+
+**Output example (`--json`):**
+
+```json
+{ "success": true, "transaction": "0x...", "network": "base-sepolia", "recipient": "0x...", "amount": "1" }
+```
+
+> **Eligibility**: the recipient address must have a USDC balance below 0.1 USDC. Rate-limited to 3 requests per address per hour.
+
+---
 
 ### `update`
 

@@ -9,6 +9,15 @@ export async function GET(req: NextRequest) {
     name:    'a2a-wallet',
     url:     `${baseUrl}/api/a2a`,
     version: '1.0.0',
+    capabilities: {
+      extensions: [
+        {
+          uri:         'https://github.com/google-agentic-commerce/a2a-x402/blob/main/spec/v0.2',
+          description: 'Supports payments using the x402 protocol for on-chain settlement.',
+          required:    true,
+        },
+      ],
+    },
     securitySchemes: {
       deviceFlow: {
         oauth2SecurityScheme: {

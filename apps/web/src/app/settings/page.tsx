@@ -115,15 +115,15 @@ export default function SettingsPage() {
   useEffect(() => { fetchBalance(); }, [fetchBalance]);
 
   async function handleFaucet() {
+    if (!walletAddress) return;
     setFaucetState('loading');
     setFaucetTx(null);
     setFaucetError(null);
     try {
-      const privyToken = await getAccessToken();
-      if (!privyToken) throw new Error('Not authenticated');
       const res = await fetch('/api/faucet', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${privyToken}` },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: walletAddress }),
       });
       const data = await res.json() as { transaction?: string; error?: string; balance?: string; threshold?: string };
       if (!res.ok) {

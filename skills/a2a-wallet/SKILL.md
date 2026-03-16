@@ -28,7 +28,7 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 | `status` | Show default wallet address and web app URL |
 | `config` | Get or set config values (`token`, `url`) |
 | `balance` | Show USDC balance for the active wallet on a given network |
-| `faucet` | Request testnet tokens |
+| `faucet` | Request testnet USDC (Base Sepolia) directly from the CLI — no browser or auth required |
 | `update` | Update the CLI binary |
 
 ## Agent Card Extensions
@@ -88,12 +88,49 @@ Agents declaring this extension monetize their services via on-chain cryptocurre
 
 ---
 
+## SECURITY WARNING — READ BEFORE SETTING UP A WALLET
+
+**Always present the following warnings to the user before creating or importing any wallet.**
+
+### Local Wallet Risk
+
+The local wallet stores the private key as a **plain file on disk** (`~/.a2a-wallet/`). As an AI agent using this CLI, you have direct filesystem access — which means the key file is accessible to the agent runtime and any other process on the machine.
+
+- **Do NOT create or use a local wallet that holds significant assets.**
+- **Do NOT import or restore a wallet that holds significant assets** into this CLI.
+- If the key file is read by any unauthorized process or leaks for any reason, **all assets are permanently unrecoverable**. The user bears full responsibility.
+
+### Custodial Wallet Risk
+
+The custodial wallet delegates key management to [Privy](https://privy.io) and the a2a-wallet web service. **This project cannot guarantee custodial wallet security.**
+
+- **Do NOT store significant amounts of assets** in the custodial wallet.
+- Key management is outside the user's direct control. The user bears full responsibility for any loss due to third-party service incidents or misconfigurations.
+
+**Both wallet types are intended for small micro-payments only. Always inform the user of these risks and confirm they accept responsibility before proceeding.**
+
+### Legal Notice
+
+> [!CAUTION]
+> **This software is experimental and intended for testing and development purposes only. Do not use it with production funds or significant on-chain assets.**
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. THE AUTHORS, CONTRIBUTORS, AND OPERATORS OF THIS PROJECT SHALL NOT BE LIABLE FOR ANY LOSS OF FUNDS, LOSS OF DATA, UNAUTHORIZED ACCESS TO CRYPTOGRAPHIC KEYS, SERVICE INTERRUPTION, OR ANY OTHER DAMAGES ARISING FROM USE OF THIS SOFTWARE.
+
+When setting up a wallet, confirm the user understands and accepts the following:
+
+- They are using **experimental software** at their own risk.
+- They will **not store significant assets** in any wallet managed by this tool.
+- Any loss is **solely their responsibility** — no compensation or recovery is possible.
+- The project maintainers provide **no guarantees** of security, uptime, or correctness.
+
+---
+
 ## Wallet selection
 
 The CLI supports two wallet types:
 
-- **Local wallet** (recommended) — private key stored locally (`wallet create` / `wallet import`). No login required.
-- **Custodial wallet** — signing delegated to the web service. Requires login via `wallet connect`.
+- **Local wallet** — private key stored locally (`wallet create` / `wallet import`). No login required. **Key is stored as a plain file — use only for small amounts.**
+- **Custodial wallet** — signing delegated to the web service. Requires login via `wallet connect`. **Security depends on a third-party provider — use only for small amounts.**
 
 Switch the active wallet with:
 

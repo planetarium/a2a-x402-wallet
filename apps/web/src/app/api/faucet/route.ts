@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, http, formatUnits } from 'viem';
+import { createPublicClient, http, formatUnits, isAddress } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import type { WalletWithMetadata } from '@privy-io/server-auth';
 import { privy } from '@/lib/privy';
 import { faucetLimiter, tooManyRequests } from '@/lib/rate-limit';
 import {
@@ -89,13 +88,16 @@ async function settlePayment(
 /**
  * POST /api/faucet
  *
- * Sends 1 USDC (1 000 000 units) from the admin wallet to the authenticated
- * user's wallet on Base Sepolia, using the x402 facilitator.
+ * Sends 1 USDC (1 000 000 units) from the admin wallet to the given address
+ * on Base Sepolia, using the x402 facilitator. No authentication required.
+ *
+ * Request body:
+ *   { "address": "0x..." }
  *
  * Conditions:
- *   - Authorization: Bearer <privy-access-token>
- *   - User's USDC balance must be < 0.1 USDC
- *   - Rate limited: 3 requests per user per hour
+ *   - address must be a valid Ethereum address
+ *   - address USDC balance must be < 0.1 USDC
+ *   - Rate limited: 3 requests per address per hour
  *
  * Required env vars:
  *   FAUCET_ADMIN_WALLET_ID  — Privy wallet ID of the admin wallet
@@ -108,35 +110,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Faucet not configured' }, { status: 503 });
   }
 
-  // ── auth ───────────────────────────────────────────────────────────────────
-  const authHeader = req.headers.get('Authorization');
-  const privyToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!privyToken) {
-    return NextResponse.json({ error: 'Authorization header required' }, { status: 401 });
-  }
-
-  let userId: string;
+  // ── parse body ─────────────────────────────────────────────────────────────
   let userAddress: `0x${string}`;
   try {
-    const claims = await privy.verifyAuthToken(privyToken);
-    userId = claims.userId;
-
-    const user = await privy.getUser(userId);
-    const wallet = user.linkedAccounts.find(
-      (a): a is WalletWithMetadata =>
-        a.type === 'wallet' && typeof (a as WalletWithMetadata).address === 'string',
-    ) as WalletWithMetadata | undefined;
-
-    if (!wallet?.address) {
-      return NextResponse.json({ error: 'No wallet found for this account' }, { status: 400 });
+    const body = await req.json();
+    if (!body?.address || !isAddress(body.address)) {
+      return NextResponse.json({ error: 'Valid Ethereum address required' }, { status: 400 });
     }
-    userAddress = wallet.address as `0x${string}`;
+    userAddress = body.address as `0x${string}`;
   } catch {
-    return NextResponse.json({ error: 'Invalid Privy token' }, { status: 401 });
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
   // ── rate limit ─────────────────────────────────────────────────────────────
-  const { allowed, resetAt } = faucetLimiter.check(userId);
+  const { allowed, resetAt } = faucetLimiter.check(userAddress.toLowerCase());
   if (!allowed) return tooManyRequests(resetAt);
 
   // ── balance gate ───────────────────────────────────────────────────────────
