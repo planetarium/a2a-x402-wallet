@@ -17,6 +17,13 @@ primary_region = 'nrt'
   PORT = '3000'
   APP_URL = 'set-your-domain'
 
+  # x402 payment extension (Merchant Agent config)
+  A2A_X402_PAY_TO=''
+  A2A_X402_NETWORK = 'base-sepolia'
+  A2A_X402_ASSET = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+  A2A_X402_MAX_AMOUNT = '1000'
+  X402_FACILITATOR_URL = 'https://x402.org/facilitator'
+
 [http_service]
   internal_port = 3000
   force_https = true
