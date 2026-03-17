@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "packages:build": "pnpm --filter @a2a-x402-wallet/x402 build",
     "web:dev": "pnpm --filter a2a-x402-wallet-web dev",
     "web:build": "pnpm --filter a2a-x402-wallet-web build",
     "web:start": "pnpm --filter a2a-x402-wallet-web start",
