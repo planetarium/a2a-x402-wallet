@@ -1,4 +1,5 @@
-import { pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { boolean, json, pgTable, serial, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import type { PaymentRequirements } from '@a2a-x402-wallet/x402';
 
 // Per-user settings persisted in the database.
 // jwtExpiresIn: null means fall back to the JWT_EXPIRATION_TIME env var.
@@ -51,6 +52,27 @@ export const a2aDeviceCodes = pgTable('a2a_device_codes', {
 export const a2aApiKeys = pgTable('a2a_api_keys', {
   apiKey:    text('api_key').primaryKey(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Stores named sets of x402 PaymentRequirements (the accepts array).
+// The active config (is_active = true) is used by the A2A route handler.
+// Falls back to legacy env vars (A2A_X402_ACCEPTS, A2A_X402_PAY_TO, etc.) if no active row exists.
+export const x402AcceptsConfigs = pgTable('x402_accepts_configs', {
+  id:        serial('id').primaryKey(),
+  name:      text('name').notNull().unique(),
+  accepts:   json('accepts').notNull().$type<PaymentRequirements[]>(),
+  isActive:  boolean('is_active').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Stores pending x402 payment tasks by taskId.
+// Replaces the previous in-memory Map to support horizontal scaling.
+export const x402PendingTasks = pgTable('x402_pending_tasks', {
+  taskId:              text('task_id').primaryKey(),
+  paymentRequirements: json('payment_requirements').notNull().$type<PaymentRequirements[]>(),
+  expiresAt:           timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt:           timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Stores short-lived device codes for the RFC 8628-compliant CLI Device Authorization Flow.

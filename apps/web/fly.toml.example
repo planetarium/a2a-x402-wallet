@@ -18,6 +18,11 @@ primary_region = 'nrt'
   APP_URL = 'set-your-domain'
 
   # x402 payment extension (Merchant Agent config)
+  #
+  # Option 1 (recommended): multi-accepts JSON array — supports multiple networks/assets
+  # A2A_X402_ACCEPTS = '[{"scheme":"exact","network":"base","asset":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","payTo":"0xYOUR_WALLET","maxAmountRequired":"1000000","extra":{"name":"USDC","version":"2"}},{"scheme":"exact","network":"base-sepolia","asset":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","payTo":"0xYOUR_WALLET","maxAmountRequired":"1000000","extra":{"name":"USDC","version":"2"}}]'
+  #
+  # Option 2 (legacy): single-option env vars — used when A2A_X402_ACCEPTS is not set
   A2A_X402_PAY_TO=''
   A2A_X402_NETWORK = 'base-sepolia'
   A2A_X402_ASSET = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
