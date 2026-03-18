@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { Task } from '@a2a-js/sdk';
 import { NETWORKS, type NetworkName, type PaymentRequirements } from '@a2a-x402-wallet/x402';
 
 // ---------------------------------------------------------------------------
@@ -50,16 +51,18 @@ export function getBaseFeePaymentRequirements(): PaymentRequirements[] {
 // A2A task response builders (x402 metadata convention)
 // ---------------------------------------------------------------------------
 
-export function makePaymentRequiredTask(taskId: string, requirements: PaymentRequirements[]) {
+export function makePaymentRequiredTask(taskId: string, requirements: PaymentRequirements[]): Task {
   return {
-    kind:   'task',
-    id:     taskId,
+    kind:      'task',
+    id:        taskId,
+    contextId: taskId,
     status: {
       state:   'input-required',
       message: {
-        kind:  'message',
-        role:  'agent',
-        parts: [{ kind: 'text', text: 'Payment is required to use this service.' }],
+        kind:      'message',
+        messageId: randomUUID(),
+        role:      'agent',
+        parts:     [{ kind: 'text', text: 'Payment is required to use this service.' }],
         metadata: {
           'x402.payment.status':   'payment-required',
           'x402.payment.required': {
@@ -73,16 +76,18 @@ export function makePaymentRequiredTask(taskId: string, requirements: PaymentReq
   };
 }
 
-export function makePaymentCompletedTask(taskId: string, network: string, transaction: string) {
+export function makePaymentCompletedTask(taskId: string, network: string, transaction: string): Task {
   return {
-    kind:   'task',
-    id:     taskId,
+    kind:      'task',
+    id:        taskId,
+    contextId: taskId,
     status: {
       state:   'completed',
       message: {
-        kind:  'message',
-        role:  'agent',
-        parts: [{ kind: 'text', text: 'Payment received. Service request completed.' }],
+        kind:      'message',
+        messageId: randomUUID(),
+        role:      'agent',
+        parts:     [{ kind: 'text', text: 'Payment received. Service request completed.' }],
         metadata: {
           'x402.payment.status':   'payment-completed',
           'x402.payment.receipts': [{ success: true, transaction, network }],
@@ -100,16 +105,18 @@ export function makePaymentCompletedTask(taskId: string, network: string, transa
   };
 }
 
-export function makePaymentFailedTask(taskId: string, reason: string, errorCode: string, network: string) {
+export function makePaymentFailedTask(taskId: string, reason: string, errorCode: string, network: string): Task {
   return {
-    kind:   'task',
-    id:     taskId,
+    kind:      'task',
+    id:        taskId,
+    contextId: taskId,
     status: {
       state:   'failed',
       message: {
-        kind:  'message',
-        role:  'agent',
-        parts: [{ kind: 'text', text: `Payment failed: ${reason}` }],
+        kind:      'message',
+        messageId: randomUUID(),
+        role:      'agent',
+        parts:     [{ kind: 'text', text: `Payment failed: ${reason}` }],
         metadata: {
           'x402.payment.status': 'payment-failed',
           'x402.payment.error':  errorCode,
