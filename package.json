@@ -17,6 +17,7 @@
     "registry:dev": "pnpm --filter a2a-agent-registry dev",
     "registry:build": "pnpm --filter a2a-agent-registry build",
     "registry:start": "pnpm --filter a2a-agent-registry start",
+    "registry:deploy": "fly deploy --config apps/agent-registry/fly.toml",
     "registry:db:generate": "pnpm --filter a2a-agent-registry db:generate",
     "registry:db:migrate": "pnpm --filter a2a-agent-registry db:migrate",
     "registry:db:studio": "pnpm --filter a2a-agent-registry db:studio",
