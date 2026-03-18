@@ -1,211 +1,13 @@
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { a2aDeviceStore } from '@/lib/a2a-device-store';
+import { X402Facilitator, type PaymentPayload } from '@a2a-x402-wallet/x402';
 import {
-  NETWORKS,
-  type NetworkName,
-  type PaymentPayload,
-  type PaymentRequirements,
-} from '@a2a-x402-wallet/x402';
-
-// ---------------------------------------------------------------------------
-// Facilitator — direct HTTP calls (no @x402/core library)
-// ---------------------------------------------------------------------------
-const FACILITATOR_URL = process.env.X402_FACILITATOR_URL ?? 'https://x402.org/facilitator';
-
-async function verifyPayment(
-  payload: PaymentPayload,
-  requirements: PaymentRequirements,
-): Promise<{ valid: boolean; reason?: string; payer?: string }> {
-  let response: Response;
-  try {
-    response = await fetch(`${FACILITATOR_URL}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ x402Version: 1, paymentPayload: payload, paymentRequirements: requirements }),
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { valid: false, reason: `facilitator_unreachable: ${msg}` };
-  }
-
-  const data = await response.json() as {
-    isValid: boolean;
-    invalidReason?: string;
-    payer?: string;
-  };
-
-  if (!response.ok) return { valid: false, reason: data.invalidReason ?? `http_${response.status}` };
-  return { valid: data.isValid, reason: data.invalidReason, payer: data.payer };
-}
-
-async function settlePayment(
-  payload: PaymentPayload,
-  requirements: PaymentRequirements,
-): Promise<{ success: boolean; transaction: string; network: string; payer?: string; errorReason?: string }> {
-  let response: Response;
-  try {
-    response = await fetch(`${FACILITATOR_URL}/settle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ x402Version: 1, paymentPayload: payload, paymentRequirements: requirements }),
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { success: false, transaction: '', network: requirements.network, errorReason: `facilitator_unreachable: ${msg}` };
-  }
-
-  const data = await response.json() as {
-    success: boolean;
-    transaction: string;
-    network: string;
-    payer?: string;
-    errorReason?: string;
-  };
-
-  if (!response.ok || !data.success) {
-    return { success: false, transaction: data.transaction ?? '', network: data.network ?? requirements.network, payer: data.payer, errorReason: data.errorReason ?? `http_${response.status}` };
-  }
-  return { success: true, transaction: data.transaction, network: data.network, payer: data.payer };
-}
-
-// ---------------------------------------------------------------------------
-// In-memory task store for pending x402 payment tasks.
-// Maps taskId → PaymentRequirements that were issued for that task.
-// ---------------------------------------------------------------------------
-interface PendingPaymentTask {
-  paymentRequirements: PaymentRequirements[];
-  createdAt: number;
-}
-
-const pendingTasks = new Map<string, PendingPaymentTask>();
-
-// Clean up tasks older than 30 minutes
-const TASK_TTL_MS = 30 * 60 * 1000;
-function evictStaleTasks() {
-  const cutoff = Date.now() - TASK_TTL_MS;
-  for (const [id, task] of pendingTasks) {
-    if (task.createdAt < cutoff) pendingTasks.delete(id);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to build x402-compliant task responses
-// ---------------------------------------------------------------------------
-
-function makePaymentRequiredTask(taskId: string, requirements: PaymentRequirements[]) {
-  return {
-    kind:   'task',
-    id:     taskId,
-    status: {
-      state:   'input-required',
-      message: {
-        kind:  'message',
-        role:  'agent',
-        parts: [{ kind: 'text', text: 'Payment is required to use this service.' }],
-        metadata: {
-          'x402.payment.status':   'payment-required',
-          'x402.payment.required': {
-            x402Version: 1,
-            accepts:     requirements,
-          },
-        },
-      },
-      timestamp: new Date().toISOString(),
-    },
-  };
-}
-
-function makePaymentCompletedTask(taskId: string, network: string, transaction: string) {
-  return {
-    kind:   'task',
-    id:     taskId,
-    status: {
-      state:   'completed',
-      message: {
-        kind:  'message',
-        role:  'agent',
-        parts: [{ kind: 'text', text: 'Payment received. Service request completed.' }],
-        metadata: {
-          'x402.payment.status':   'payment-completed',
-          'x402.payment.receipts': [
-            {
-              success: true,
-              transaction,
-              network,
-            },
-          ],
-        },
-      },
-      timestamp: new Date().toISOString(),
-    },
-    artifacts: [
-      {
-        artifactId: randomUUID(),
-        name:       'result',
-        parts:      [{ kind: 'text', text: 'Echo: payment accepted.' }],
-      },
-    ],
-  };
-}
-
-function makePaymentFailedTask(taskId: string, reason: string, errorCode: string, network: string) {
-  return {
-    kind:   'task',
-    id:     taskId,
-    status: {
-      state:   'failed',
-      message: {
-        kind:  'message',
-        role:  'agent',
-        parts: [{ kind: 'text', text: `Payment failed: ${reason}` }],
-        metadata: {
-          'x402.payment.status': 'payment-failed',
-          'x402.payment.error':  errorCode,
-          'x402.payment.receipts': [
-            {
-              success:     false,
-              errorReason: reason,
-              network,
-              transaction: '',
-            },
-          ],
-        },
-      },
-      timestamp: new Date().toISOString(),
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Payment requirements from environment
-// ---------------------------------------------------------------------------
-
-function getPaymentRequirements(): PaymentRequirements | null {
-  const payTo = process.env.A2A_X402_PAY_TO as `0x${string}` | undefined;
-  if (!payTo) return null;
-
-  const network    = (process.env.A2A_X402_NETWORK ?? 'base-sepolia') as NetworkName;
-  const networkCfg = NETWORKS[network];
-  const asset      = (process.env.A2A_X402_ASSET ?? networkCfg?.usdcAddress) as `0x${string}`;
-  const maxAmount  = process.env.A2A_X402_MAX_AMOUNT ?? '1000'; // 0.001 USDC
-
-  return {
-    scheme:             'exact',
-    network,
-    asset,
-    payTo,
-    maxAmountRequired:  maxAmount,
-    extra: {
-      name:    networkCfg?.usdcEip712.name    ?? 'USDC',
-      version: networkCfg?.usdcEip712.version ?? '2',
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Route handler
-// ---------------------------------------------------------------------------
+  getBaseFeePaymentRequirements,
+  makePaymentRequiredTask,
+  makePaymentCompletedTask,
+  makePaymentFailedTask,
+} from '@/lib/x402-payment';
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -231,8 +33,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 
-  evictStaleTasks();
-
   const rpcId = body.id ?? null;
 
   // -------------------------------------------------------------------------
@@ -250,68 +50,71 @@ export async function POST(req: NextRequest) {
 
     // --- Step 3: Client submits signed PaymentPayload ---
     if (paymentStatus === 'payment-submitted') {
-      const taskId  = msg?.taskId ?? '';
+      const taskId  = msg?.taskId ?? randomUUID();
       const payload = msg?.metadata?.['x402.payment.payload'] as PaymentPayload | undefined;
-
-      const pending = taskId ? pendingTasks.get(taskId) : undefined;
-      const network = pending?.paymentRequirements[0]?.network ?? 'base-sepolia';
 
       if (!payload) {
         return NextResponse.json({
           jsonrpc: '2.0', id: rpcId,
-          result: makePaymentFailedTask(taskId, 'Missing x402.payment.payload in metadata', 'INVALID_SIGNATURE', network),
+          result: makePaymentFailedTask(taskId, 'Missing x402.payment.payload in metadata', 'INVALID_SIGNATURE', 'unknown'),
         });
       }
 
-      if (!pending) {
+      const { to } = payload.payload.authorization;
+      const requirements = getBaseFeePaymentRequirements();
+      const candidates = requirements.filter(r =>
+        r.network === payload.network &&
+        r.maxAmountRequired === payload.payload.authorization.value &&
+        r.payTo.toLowerCase() === to.toLowerCase()
+      );
+
+      if (candidates.length === 0) {
         return NextResponse.json({
           jsonrpc: '2.0', id: rpcId,
-          result: makePaymentFailedTask(taskId, 'Unknown or expired task', 'EXPIRED_PAYMENT', network),
+          result: makePaymentFailedTask(
+            taskId,
+            `No matching payment requirement for network=${payload.network}, value=${payload.payload.authorization.value.toString()}, to=${to}`,
+            'INVALID_SIGNATURE',
+            payload.network,
+          ),
         });
       }
 
-      const req0 = pending.paymentRequirements[0];
+      const facilitator = new X402Facilitator(
+        process.env.X402_FACILITATOR_URL ?? 'https://x402.org/facilitator',
+      );
 
-      // Verify: signature, amount, recipient, time window (via official facilitator)
-      const verifyResult = await verifyPayment(payload, req0);
+      let matchedReq = candidates[0];
+      let verifyResult = await facilitator.verify(payload, matchedReq);
+      for (let i = 1; !verifyResult.valid && i < candidates.length; i++) {
+        matchedReq = candidates[i];
+        verifyResult = await facilitator.verify(payload, matchedReq);
+      }
+
       if (!verifyResult.valid) {
         return NextResponse.json({
           jsonrpc: '2.0', id: rpcId,
-          result: makePaymentFailedTask(
-            taskId,
-            verifyResult.reason ?? 'Verification failed',
-            verifyResult.reason ?? 'unexpected_verify_error',
-            network,
-          ),
+          result: makePaymentFailedTask(taskId, verifyResult.reason ?? 'Verification failed', 'VERIFICATION_FAILED', payload.network),
         });
       }
 
-      // Settle: submit on-chain transferWithAuthorization, wait for receipt
-      const settleResult = await settlePayment(payload, req0);
+      const settleResult = await facilitator.settle(payload, matchedReq);
       if (!settleResult.success) {
         return NextResponse.json({
           jsonrpc: '2.0', id: rpcId,
-          result: makePaymentFailedTask(
-            taskId,
-            settleResult.errorReason ?? 'Settlement failed',
-            settleResult.errorReason ?? 'unexpected_settle_error',
-            network,
-          ),
+          result: makePaymentFailedTask(taskId, settleResult.errorReason ?? 'Settlement failed', 'SETTLEMENT_FAILED', payload.network),
         });
       }
 
-      pendingTasks.delete(taskId);
-
       return NextResponse.json({
         jsonrpc: '2.0', id: rpcId,
-        result: makePaymentCompletedTask(taskId, network, settleResult.transaction),
+        result: makePaymentCompletedTask(taskId, matchedReq.network, settleResult.transaction),
       });
     }
 
     // --- Client explicitly rejects payment ---
     if (paymentStatus === 'payment-rejected') {
       const taskId = msg?.taskId ?? randomUUID();
-      pendingTasks.delete(taskId);
 
       return NextResponse.json({
         jsonrpc: '2.0', id: rpcId,
@@ -333,18 +136,13 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Step 1: New service request — require payment if configured ---
-    const requirements = getPaymentRequirements();
+    const requirements = getBaseFeePaymentRequirements();
     const taskId = randomUUID();
 
-    if (requirements) {
-      pendingTasks.set(taskId, {
-        paymentRequirements: [requirements],
-        createdAt: Date.now(),
-      });
-
+    if (requirements.length > 0) {
       return NextResponse.json({
         jsonrpc: '2.0', id: rpcId,
-        result: makePaymentRequiredTask(taskId, [requirements]),
+        result: makePaymentRequiredTask(taskId, requirements),
       });
     }
 
@@ -370,22 +168,18 @@ export async function POST(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // tasks/get
+  // tasks/get — stub: no persistent task store, return unknown state
   // -------------------------------------------------------------------------
   if (body.method === 'tasks/get') {
     const taskId = (body.params?.id as string | undefined) ?? 'unknown';
-    const pending = pendingTasks.get(taskId);
-
-    if (pending) {
-      return NextResponse.json({
-        jsonrpc: '2.0', id: rpcId,
-        result: makePaymentRequiredTask(taskId, pending.paymentRequirements),
-      });
-    }
 
     return NextResponse.json({
       jsonrpc: '2.0', id: rpcId,
-      error: { code: -32001, message: 'Task not found' },
+      result: {
+        kind:   'task',
+        id:     taskId,
+        status: { state: 'unknown', timestamp: new Date().toISOString() },
+      },
     });
   }
 
@@ -394,7 +188,6 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   if (body.method === 'tasks/cancel') {
     const taskId = (body.params?.id as string | undefined) ?? 'unknown';
-    pendingTasks.delete(taskId);
 
     return NextResponse.json({
       jsonrpc: '2.0', id: rpcId,

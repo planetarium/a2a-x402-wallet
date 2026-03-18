@@ -16,13 +16,16 @@ primary_region = 'nrt'
 [env]
   PORT = '3000'
   APP_URL = 'set-your-domain'
-
-  # x402 payment extension (Merchant Agent config)
-  A2A_X402_PAY_TO=''
-  A2A_X402_NETWORK = 'base-sepolia'
-  A2A_X402_ASSET = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
-  A2A_X402_MAX_AMOUNT = '1000'
   X402_FACILITATOR_URL = 'https://x402.org/facilitator'
+  # x402 payment extension (Merchant Agent config)
+  # A2A_X402_PAY_TO  — wallet address that receives payments (required to enable x402 flow)
+  # A2A_X402_ACCEPTS — JSON array of accepted payment options.
+  #   Each entry: {"network":"<network>","asset":"<token-address>","maxAmount":"<amount-in-base-units>"}
+  #   Example (single entry): [{"network":"base-sepolia","asset":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","maxAmount":"1000"}]
+  #   If omitted, x402 payment is disabled.
+  A2A_X402_PAY_TO = ''
+  A2A_X402_ACCEPTS = ''
+
 
 [http_service]
   internal_port = 3000
