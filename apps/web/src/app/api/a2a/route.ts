@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import type { Task, MessageSendParams } from '@a2a-js/sdk';
 import { a2aDeviceStore } from '@/lib/a2a-device-store';
 import { X402Facilitator, type PaymentPayload } from '@a2a-x402-wallet/x402';
 import {
@@ -39,13 +40,8 @@ export async function POST(req: NextRequest) {
   // message/send — primary A2A method, implements x402 Standalone Flow
   // -------------------------------------------------------------------------
   if (body.method === 'message/send') {
-    const params = body.params ?? {};
-    const msg = params.message as {
-      taskId?:   string;
-      parts?:    { kind?: string; text?: string }[];
-      metadata?: Record<string, unknown>;
-    } | undefined;
-
+    const params = body.params as MessageSendParams | undefined;
+    const msg = params?.message;
     const paymentStatus = msg?.metadata?.['x402.payment.status'] as string | undefined;
 
     // --- Step 3: Client submits signed PaymentPayload ---
@@ -115,24 +111,23 @@ export async function POST(req: NextRequest) {
     // --- Client explicitly rejects payment ---
     if (paymentStatus === 'payment-rejected') {
       const taskId = msg?.taskId ?? randomUUID();
-
-      return NextResponse.json({
-        jsonrpc: '2.0', id: rpcId,
-        result: {
-          kind:   'task',
-          id:     taskId,
-          status: {
-            state:   'canceled',
-            message: {
-              kind:  'message',
-              role:  'agent',
-              parts: [{ kind: 'text', text: 'Payment rejected by client. Task canceled.' }],
-              metadata: { 'x402.payment.status': 'payment-rejected' },
-            },
-            timestamp: new Date().toISOString(),
+      const task: Task = {
+        kind:      'task',
+        id:        taskId,
+        contextId: taskId,
+        status: {
+          state:   'canceled',
+          message: {
+            kind:      'message',
+            messageId: randomUUID(),
+            role:      'agent',
+            parts:     [{ kind: 'text', text: 'Payment rejected by client. Task canceled.' }],
+            metadata:  { 'x402.payment.status': 'payment-rejected' },
           },
+          timestamp: new Date().toISOString(),
         },
-      });
+      };
+      return NextResponse.json({ jsonrpc: '2.0', id: rpcId, result: task });
     }
 
     // --- Step 1: New service request — require payment if configured ---
@@ -148,23 +143,23 @@ export async function POST(req: NextRequest) {
 
     // No payment configured — echo response (development fallback)
     const parts = msg?.parts ?? [];
-    const text  = parts.map((p) => p.text ?? '').join(' ').trim() || '(empty)';
-    return NextResponse.json({
-      jsonrpc: '2.0', id: rpcId,
-      result: {
-        kind:   'task',
-        id:     taskId,
-        status: {
-          state:   'completed',
-          message: {
-            kind:  'message',
-            role:  'agent',
-            parts: [{ kind: 'text', text: `Echo: ${text}` }],
-          },
-          timestamp: new Date().toISOString(),
+    const text  = parts.map((p) => p.kind === 'text' ? p.text : '').join(' ').trim() || '(empty)';
+    const task: Task = {
+      kind:      'task',
+      id:        taskId,
+      contextId: taskId,
+      status: {
+        state:   'completed',
+        message: {
+          kind:      'message',
+          messageId: randomUUID(),
+          role:      'agent',
+          parts:     [{ kind: 'text', text: `Echo: ${text}` }],
         },
+        timestamp: new Date().toISOString(),
       },
-    });
+    };
+    return NextResponse.json({ jsonrpc: '2.0', id: rpcId, result: task });
   }
 
   // -------------------------------------------------------------------------
@@ -172,15 +167,13 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   if (body.method === 'tasks/get') {
     const taskId = (body.params?.id as string | undefined) ?? 'unknown';
-
-    return NextResponse.json({
-      jsonrpc: '2.0', id: rpcId,
-      result: {
-        kind:   'task',
-        id:     taskId,
-        status: { state: 'unknown', timestamp: new Date().toISOString() },
-      },
-    });
+    const task: Task = {
+      kind:      'task',
+      id:        taskId,
+      contextId: taskId,
+      status:    { state: 'unknown', timestamp: new Date().toISOString() },
+    };
+    return NextResponse.json({ jsonrpc: '2.0', id: rpcId, result: task });
   }
 
   // -------------------------------------------------------------------------
@@ -188,15 +181,22 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   if (body.method === 'tasks/cancel') {
     const taskId = (body.params?.id as string | undefined) ?? 'unknown';
-
-    return NextResponse.json({
-      jsonrpc: '2.0', id: rpcId,
-      result: {
-        kind:   'task',
-        id:     taskId,
-        status: { state: 'canceled', timestamp: new Date().toISOString() },
+    const task: Task = {
+      kind:      'task',
+      id:        taskId,
+      contextId: taskId,
+      status: {
+        state:   'canceled',
+        message: {
+          kind:      'message',
+          messageId: randomUUID(),
+          role:      'agent',
+          parts:     [{ kind: 'text', text: 'Task canceled.' }],
+        },
+        timestamp: new Date().toISOString(),
       },
-    });
+    };
+    return NextResponse.json({ jsonrpc: '2.0', id: rpcId, result: task });
   }
 
   return NextResponse.json({
