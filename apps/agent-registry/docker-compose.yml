@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: agent-registry-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: agent_registry
+    ports:
+      - "5433:5432"
+    volumes:
+      - agent_registry_data:/var/lib/postgresql/data
+
+volumes:
+  agent_registry_data:
