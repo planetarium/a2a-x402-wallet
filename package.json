@@ -14,6 +14,9 @@
     "web:deploy": "fly deploy --config apps/web/fly.toml",
     "web:db:generate": "pnpm --filter a2a-x402-wallet-web db:generate",
     "web:db:migrate": "pnpm --filter a2a-x402-wallet-web db:migrate",
+    "registry:dev": "pnpm --filter a2a-agent-registry dev",
+    "registry:build": "pnpm --filter a2a-agent-registry build",
+    "registry:start": "pnpm --filter a2a-agent-registry start",
     "lint": "pnpm --filter a2a-x402-wallet-cli run lint && pnpm --filter a2a-x402-wallet-web run lint"
   }
 }
