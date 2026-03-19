@@ -36,8 +36,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const x402 = (card as any).extensions?.x402 ?? null;
   const contentHash = createHash("sha256")
     .update(JSON.stringify(card))
     .digest("hex");
@@ -48,27 +46,30 @@ export async function POST(req: NextRequest) {
     .where(eq(agents.agentCardUrl, agentCardUrl))
     .limit(1);
 
-  const now = new Date();
-
+  // 내용 변경 없음 — 임베딩 재생성 없이 그대로 반환
   if (existing.length > 0 && existing[0].contentHash === contentHash) {
-    // 내용 변경 없음 — lastFetchedAt만 갱신, embedding 비용 없음
     const [agent] = await db
-      .update(agents)
-      .set({ lastFetchedAt: now })
+      .select()
+      .from(agents)
       .where(eq(agents.agentCardUrl, agentCardUrl))
-      .returning();
+      .limit(1);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { embedding: _embedding, searchVector: _searchVector, contentHash: _contentHash, ...agentResponse } = agent;
+    const { embedding: _embedding, contentHash: _contentHash, ...agentResponse } = agent;
     return NextResponse.json({ result: "unchanged", agent: agentResponse }, { status: 200 });
   }
 
   const isUpdate = existing.length > 0;
+  const extensions = card.capabilities?.extensions ?? [];
+  const now = new Date();
 
   const embeddingText = buildEmbeddingText({
     name: card.name,
     description: card.description ?? "",
-    tags: card.defaultInputModes ?? [],
-    skills: (card.skills ?? []) as Array<{ id?: string; name?: string; description?: string }>,
+    skills: card.skills ?? [],
+    extensions,
+    defaultInputModes: card.defaultInputModes,
+    defaultOutputModes: card.defaultOutputModes,
+    provider: card.provider,
   });
   const embedding = await generateEmbedding(embeddingText);
 
@@ -80,12 +81,13 @@ export async function POST(req: NextRequest) {
       description: card.description ?? "",
       version: card.version,
       iconUrl: card.iconUrl,
-      tags: [],
+      documentationUrl: card.documentationUrl,
+      providerOrganization: card.provider?.organization ?? null,
+      providerUrl: card.provider?.url ?? null,
       skills: card.skills ?? [],
-      x402,
+      extensions: extensions.length > 0 ? extensions : null,
       embedding,
       contentHash,
-      lastFetchedAt: now,
     })
     .onConflictDoUpdate({
       target: agents.agentCardUrl,
@@ -94,18 +96,20 @@ export async function POST(req: NextRequest) {
         description: card.description ?? "",
         version: card.version,
         iconUrl: card.iconUrl,
+        documentationUrl: card.documentationUrl,
+        providerOrganization: card.provider?.organization ?? null,
+        providerUrl: card.provider?.url ?? null,
         skills: card.skills ?? [],
-        x402,
+        extensions: extensions.length > 0 ? extensions : null,
         embedding,
         contentHash,
-        lastFetchedAt: now,
         updatedAt: now,
       },
     })
     .returning();
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { embedding: _embedding, searchVector: _searchVector, contentHash: _contentHash, ...agentResponse } = agent;
+  const { embedding: _embedding, contentHash: _contentHash, ...agentResponse } = agent;
   return NextResponse.json(
     { result: isUpdate ? "updated" : "created", agent: agentResponse },
     { status: isUpdate ? 200 : 201 },

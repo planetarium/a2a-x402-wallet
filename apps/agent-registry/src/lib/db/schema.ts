@@ -19,24 +19,23 @@ export const agents = pgTable(
     description: text("description").notNull().default(""),
     version: text("version"),
     iconUrl: text("icon_url"),
-    tags: text("tags").array().notNull().default([]),
+    documentationUrl: text("documentation_url"),
 
-    // Structured data (skill list, x402 config)
+    // Provider
+    providerOrganization: text("provider_organization"),
+    providerUrl: text("provider_url"),
+
+    // Structured data
     skills: jsonb("skills").notNull().default([]),
-    x402: jsonb("x402"),
-
-    // Full-text search (sparse) — raw tsvector string for update
-    searchVector: text("search_vector"),
+    extensions: jsonb("extensions"), // capabilities.extensions
 
     // Dense vector (1536-dim, text-embedding-3-small)
     embedding: vector("embedding", { dimensions: 1536 }),
 
-    // Content hash for change detection (SHA-256 of card fields)
+    // Content hash for change detection (SHA-256 of Agent Card JSON)
     contentHash: text("content_hash"),
 
     // Meta
-    isVerified: text("is_verified").default("pending"), // pending | verified | flagged
-    lastFetchedAt: timestamp("last_fetched_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
