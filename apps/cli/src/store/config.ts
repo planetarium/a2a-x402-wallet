@@ -6,6 +6,7 @@ const CONFIG_DIR = join(homedir(), '.a2a-wallet');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 export const DEFAULT_URL = 'https://a2a-x402-wallet-web.fly.dev';
+export const DEFAULT_REGISTRY_URL = 'https://a2a-agent-registry.fly.dev';
 
 export interface Connection {
   apiKey: string;
@@ -20,6 +21,7 @@ export type WalletRef =
 export interface Config {
   url?: string;
   token?: string;
+  registryUrl?: string;
   connections?: Record<string, Connection>;
   /** The default wallet used when no --wallet or --token flag is provided. */
   defaultWallet?: WalletRef;
@@ -78,6 +80,15 @@ export function removeConnection(url: string): boolean {
 export function listConnections(): Array<{ origin: string; connection: Connection }> {
   const connections = readConfig().connections ?? {};
   return Object.entries(connections).map(([origin, connection]) => ({ origin, connection }));
+}
+
+export function getRegistryUrl(override?: string): string {
+  return (
+    override ??
+    process.env['A2A_REGISTRY_URL'] ??
+    readConfig().registryUrl ??
+    DEFAULT_REGISTRY_URL
+  );
 }
 
 export function getEffectiveConfig(overrides?: Partial<Config>): EffectiveConfig {
