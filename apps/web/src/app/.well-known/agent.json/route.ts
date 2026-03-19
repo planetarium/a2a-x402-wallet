@@ -23,7 +23,20 @@ export async function GET(req: NextRequest) {
         },
       ],
     },
-    skills: [],
+    skills: [
+      {
+        id:          'x402-payment-settlement',
+        name:        'x402 Payment Settlement',
+        description: 'Accepts service requests that require payment. Responds with an x402 payment requirement, verifies the client-submitted EIP-712 signed payment payload, and settles the transaction on-chain via the x402 Facilitator. Supports USDC payments using the exact payment scheme.',
+        tags:        ['x402', 'payment', 'wallet', 'on-chain', 'settlement', 'USDC', 'EIP-712', 'blockchain', 'crypto', 'stablecoin'],
+        examples: [
+          'I want to use this service. Here is my x402 payment.',
+          'Process my USDC payment on Base network.',
+          'Submit a signed x402 payment payload for settlement.',
+          'Pay for API access using x402 protocol.',
+        ],
+      },
+    ],
     securitySchemes: {
       deviceFlow: {
         type: 'oauth2',
