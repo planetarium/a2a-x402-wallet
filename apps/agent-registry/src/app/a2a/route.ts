@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { Task } from "@a2a-js/sdk";
-import { hybridSearch } from "@/lib/search";
+import { search } from "@/lib/search";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null) as {
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ jsonrpc: "2.0", id: rpcId, result: task });
     }
 
-    const results = await hybridSearch(query, 5);
+    const results = await search(query, 5);
 
     const text =
       results.length === 0

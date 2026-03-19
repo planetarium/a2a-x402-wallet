@@ -5,11 +5,12 @@ primary_region = "nrt"
   dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = "node scripts/migrate.mjs"
+  release_command = "node migrate.mjs"
 
 [env]
   PORT = "3000"
   NODE_ENV = "production"
+  SEARCH_SIMILARITY_THRESHOLD = "0.3"
 
 [http_service]
   internal_port = 3000

@@ -23,5 +23,12 @@
       "tag": "0002_add_content_hash",
       "breakpoints": true
     }
+    ,{
+      "idx": 3,
+      "version": "7",
+      "when": 1742342400000,
+      "tag": "0003_redesign",
+      "breakpoints": true
+    }
   ]
 }

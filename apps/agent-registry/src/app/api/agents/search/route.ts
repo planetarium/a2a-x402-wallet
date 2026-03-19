@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { hybridSearch, recentAgents } from "@/lib/search";
+import { search, recentAgents } from "@/lib/search";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q");
@@ -13,6 +13,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: recent });
   }
 
-  const results = await hybridSearch(q, limit);
+  const results = await search(q, limit);
   return NextResponse.json({ results });
 }
