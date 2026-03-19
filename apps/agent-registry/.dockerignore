@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env*
+**/.DS_Store
+*.log
+coverage
+docker-compose.yml
+docs
+**/*.tsbuildinfo
+**/README.md
+**/.gitignore
+fly.toml
