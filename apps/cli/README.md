@@ -181,7 +181,8 @@ a2a-wallet
 │   ├── send               Send a message to an agent and print the response
 │   ├── stream             Send a message and stream the response via SSE
 │   ├── tasks              Get the current state of a task
-│   └── cancel             Request cancellation of a running task
+│   ├── cancel             Request cancellation of a running task
+│   └── search             Search for A2A agents in the agent registry
 ├── x402
 │   └── sign               Sign x402 PaymentRequirements → A2A message.metadata
 ├── siwe [DEPRECATED]
@@ -560,6 +561,52 @@ a2a-wallet a2a cancel <url> <taskId> [options]
 | `--bearer <token>` | Bearer token for agent authentication |
 | `--json` | Output raw JSON (single line) |
 
+### `a2a search`
+
+Searches for A2A agents in the agent registry and prints a compact list of results.
+
+```bash
+a2a-wallet a2a search [query] [options]
+```
+
+Omit `[query]` to list recently registered agents.
+
+| Option | Description |
+|--------|-------------|
+| `-n, --limit <number>` | Max results to return (default: `10`) |
+| `--registry <url>` | Agent registry base URL (overrides config and env var) |
+| `--json` | Output raw JSON |
+
+**Output example (human-readable):**
+
+```
+$ a2a-wallet a2a search "usdc payment"
+
+name              description                                       agent_card_url
+----------------  ------------------------------------------------  -------------------------------------------
+x402-pay-agent    Handles x402 micropayment flows automatically…    https://pay.example.com/.well-known/agent.json
+wallet-assistant  Signs and submits USDC transfers on Base…         https://wallet.agent.xyz/.well-known/agent.json
+```
+
+**Output example (`--json`):**
+
+```json
+[
+  {
+    "name": "x402-pay-agent",
+    "description": "Handles x402 micropayment flows automatically",
+    "agentCardUrl": "https://pay.example.com/.well-known/agent.json"
+  }
+]
+```
+
+**No results:**
+
+```
+$ a2a-wallet a2a search "nonexistent topic"
+No agents found matching "nonexistent topic".
+```
+
 ### `faucet`
 
 Requests 1 testnet USDC (Base Sepolia) directly from the faucet API. No authentication required. The recipient address is resolved from the active wallet unless overridden with `--address`.
@@ -778,6 +825,7 @@ The wallet address is resolved automatically from your connected account. The re
 |----------|-------------|
 | `A2A_WALLET_TOKEN` | accessToken |
 | `A2A_WALLET_URL` | Web app base URL |
+| `A2A_REGISTRY_URL` | Agent registry base URL (used by `a2a search`) |
 
 ## Supported Networks
 
