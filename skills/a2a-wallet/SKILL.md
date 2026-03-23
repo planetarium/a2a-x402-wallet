@@ -169,4 +169,5 @@ a2a-wallet wallet use --custodial   # set custodial as the default
 - Errors → stderr, exit `0` = success, `1` = failure
 - Override token/URL per-call with `--token` / `--url`, or set `A2A_WALLET_TOKEN` env var
 - Always run `a2a card <url>` first to check which extensions are required before sending messages
+- Use `--file <path|uri>` with `send` or `stream` to attach files (repeatable). Local path → base64-embedded; `http(s)://` URI → referenced by URL
 - Use `a2a-wallet --help` or `a2a-wallet <command> --help` to discover options at any time

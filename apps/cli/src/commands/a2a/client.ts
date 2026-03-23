@@ -26,6 +26,17 @@ export function buildClientFactory(bearer?: string): ClientFactory {
 }
 
 /**
+ * JSON replacer that truncates base64 `bytes` fields to avoid flooding the terminal.
+ * Replaces any string value for the key "bytes" longer than 64 chars with a placeholder.
+ */
+export function bytesReplacer(_key: string, value: unknown): unknown {
+  if (_key === 'bytes' && typeof value === 'string' && value.length > 64) {
+    return `<base64 ~${value.length} chars>`;
+  }
+  return value;
+}
+
+/**
  * Format an SDK error into a human-readable message.
  * The SDK maps JSON-RPC errors to typed errors but drops the detail in the message.
  */
