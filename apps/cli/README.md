@@ -518,6 +518,7 @@ a2a-wallet a2a send <url> <message> [options]
 | `--task-id <id>` | Task ID to send message to (for payment or multi-turn) |
 | `--metadata <json>` | JSON metadata to attach to the message (e.g. x402 payment payload) |
 | `--bearer <token>` | Bearer token for agent authentication |
+| `--file <path\|uri>` | Attach a file to the message (repeatable). Local path → base64-embedded; `http(s)://` URI → referenced by URL |
 | `--json` | Output raw JSON (single line) |
 
 ### `a2a stream`
@@ -532,6 +533,7 @@ a2a-wallet a2a stream <url> <message> [options]
 |--------|-------------|
 | `--context-id <id>` | Continue an existing conversation context |
 | `--bearer <token>` | Bearer token for agent authentication |
+| `--file <path\|uri>` | Attach a file to the message (repeatable). Local path → base64-embedded; `http(s)://` URI → referenced by URL |
 | `--json` | Output each event as raw JSON (one line per event) |
 
 ### `a2a tasks get`
