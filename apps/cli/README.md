@@ -181,8 +181,10 @@ a2a-wallet
 │   ├── send               Send a message to an agent and print the response
 │   ├── stream             Send a message and stream the response via SSE
 │   ├── tasks              Get the current state of a task
-│   ├── cancel             Request cancellation of a running task
-│   └── search             Search for A2A agents in the agent registry
+│   └── cancel             Request cancellation of a running task
+├── registry
+│   ├── search             Search for A2A agents in the agent registry
+│   └── register           Register an A2A agent in the agent registry
 ├── x402
 │   └── sign               Sign x402 PaymentRequirements → A2A message.metadata
 ├── siwe [DEPRECATED]
@@ -563,12 +565,12 @@ a2a-wallet a2a cancel <url> <taskId> [options]
 | `--bearer <token>` | Bearer token for agent authentication |
 | `--json` | Output raw JSON (single line) |
 
-### `a2a search`
+### `registry search`
 
 Searches for A2A agents in the agent registry and prints a compact list of results.
 
 ```bash
-a2a-wallet a2a search [query] [options]
+a2a-wallet registry search [query] [options]
 ```
 
 Omit `[query]` to list recently registered agents.
@@ -582,7 +584,7 @@ Omit `[query]` to list recently registered agents.
 **Output example (human-readable):**
 
 ```
-$ a2a-wallet a2a search "usdc payment"
+$ a2a-wallet registry search "usdc payment"
 
 name              description                                       agent_card_url
 ----------------  ------------------------------------------------  -------------------------------------------
@@ -605,8 +607,28 @@ wallet-assistant  Signs and submits USDC transfers on Base…         https://wa
 **No results:**
 
 ```
-$ a2a-wallet a2a search "nonexistent topic"
+$ a2a-wallet registry search "nonexistent topic"
 No agents found matching "nonexistent topic".
+```
+
+### `registry register`
+
+Registers an A2A agent in the agent registry by its agent card URL.
+
+```bash
+a2a-wallet registry register <agent-card-url> [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--registry <url>` | Agent registry base URL (overrides config and env var) |
+| `--json` | Output raw JSON |
+
+**Example:**
+
+```
+$ a2a-wallet registry register https://my-agent.example.com/.well-known/agent.json
+Agent registered successfully.
 ```
 
 ### `faucet`
@@ -827,7 +849,7 @@ The wallet address is resolved automatically from your connected account. The re
 |----------|-------------|
 | `A2A_WALLET_TOKEN` | accessToken |
 | `A2A_WALLET_URL` | Web app base URL |
-| `A2A_REGISTRY_URL` | Agent registry base URL (used by `a2a search`) |
+| `A2A_REGISTRY_URL` | Agent registry base URL (used by `registry search` and `registry register`) |
 
 ## Supported Networks
 

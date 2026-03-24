@@ -22,7 +22,8 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 
 | Command | Description |
 |---------|-------------|
-| `a2a` | A2A protocol client: `auth`, `list`, `disconnect`, `card`, `send`, `stream`, `tasks`, `cancel`, `search` |
+| `a2a` | A2A protocol client: `auth`, `list`, `disconnect`, `card`, `send`, `stream`, `tasks`, `cancel` |
+| `registry` | Agent registry: `search` (find agents), `register` (register an agent by agent card URL) |
 | `x402 sign` | Sign x402 PaymentRequirements → A2A message metadata (for paywalled agents) |
 | `wallet` | Manage local wallets: `create`, `import`, `list`, `use`, `export`, `connect`, `disconnect` |
 | `status` | Show default wallet address and web app URL |
