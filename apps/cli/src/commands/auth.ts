@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { getEffectiveConfig, readConfig, writeConfig } from '../store/config.js';
-import { tryOpenBrowser } from '../utils.js';
+import { tryOpenBrowser } from '../lib/utils.js';
 
 export function logTokenSaved(token: string): void {
   console.log('Token saved. You are now logged in.');

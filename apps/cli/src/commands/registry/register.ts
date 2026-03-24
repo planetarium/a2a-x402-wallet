@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { registerAgent } from '../../registry-api.js';
+import { registerAgent } from '../../api/agent-registry.js';
 import { getRegistryUrl } from '../../store/config.js';
 
 export function makeRegisterCommand(): Command {

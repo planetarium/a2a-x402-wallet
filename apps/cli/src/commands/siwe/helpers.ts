@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { getAddress, isAddress } from 'viem';
-import { callWhoami } from '../../api.js';
+import { callWhoami } from '../../api/custody-wallet.js';
 import type { SiweFields, SiweTokenPayload } from './types.js';
 
 export function parseTtlMs(ttl: string): number {

@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { listConnections } from '../../store/config.js';
-import { formatDateTime } from '../../utils.js';
+import { formatDateTime } from '../../lib/utils.js';
 
 export function makeListCommand(): Command {
   return new Command('list')

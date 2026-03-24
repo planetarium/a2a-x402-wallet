@@ -8,7 +8,7 @@ import {
   type PaymentRequirements,
   type TransferWithAuthorizationPayload,
 } from '@a2a-x402-wallet/x402';
-import { callSign, callX402Sign, exitNotLoggedIn, type X402SignRequestBody } from '../api.js';
+import { callSign, callX402Sign, exitNotLoggedIn, type X402SignRequestBody } from '../api/custody-wallet.js';
 import { resolveWalletAddress } from '../commands/siwe/helpers.js';
 import { readConfig, getEffectiveConfig } from '../store/config.js';
 import { LocalWalletProvider } from './local.js';

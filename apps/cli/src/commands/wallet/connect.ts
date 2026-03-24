@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { getEffectiveConfig, readConfig, writeConfig, setDefaultWallet } from '../../store/config.js';
-import { tryOpenBrowser } from '../../utils.js';
+import { tryOpenBrowser } from '../../lib/utils.js';
 import { logTokenSaved, POLL_INTERVAL_MS, TIMEOUT_MS } from '../auth.js';
 
 export function makeWalletConnectCommand(): Command {

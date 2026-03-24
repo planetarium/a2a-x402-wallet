@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { LocalWalletProvider } from '../../wallet/local.js';
 import { readConfig, getEffectiveConfig } from '../../store/config.js';
-import { formatDateTime } from '../../utils.js';
+import { formatDateTime } from '../../lib/utils.js';
 import { resolveWalletAddress } from '../siwe/helpers.js';
 
 const CUSTODIAL_TIMEOUT_MS = 30_000;

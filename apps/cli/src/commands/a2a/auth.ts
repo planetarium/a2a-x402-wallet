@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { setConnection } from '../../store/config.js';
-import { fetchAgentCard, findDeviceCodeFlow } from '../../services/a2a.js';
+import { fetchAgentCard, findDeviceCodeFlow } from '../../lib/a2a.js';
 import { savePendingAuth, getPendingAuth, deletePendingAuth } from '../../store/pending-auths.js';
 
 const DEVICE_CODE_GRANT = 'urn:ietf:params:oauth:grant-type:device_code';

@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { getEffectiveConfig } from '../store/config.js';
 import { resolveSigner } from '../wallet/signer.js';
-import { callFaucet } from '../api.js';
+import { callFaucet } from '../api/custody-wallet.js';
 
 export function makeFaucetCommand(): Command {
   return new Command('faucet')
