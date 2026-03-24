@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { randomUUID } from 'crypto';
 import { buildClientFactory, formatA2AError, bytesReplacer } from './client.js';
 import { getConnection } from '../../store/config.js';
-import { readFileAsBytes, parseFileUri } from '../../file.js';
+import { readFileAsBytes, parseFileUri } from '../../lib/file.js';
 import type { FilePart } from '@a2a-js/sdk';
 
 

@@ -7,6 +7,7 @@ import { makeX402Command } from './commands/x402.js';
 import { makeStatusCommand } from './commands/status.js';
 import { makeUpdateCommand } from './commands/update.js';
 import { makeA2ACommand } from './commands/a2a.js';
+import { makeRegistryCommand } from './commands/registry.js';
 import { makeSiweCommand } from './commands/siwe/index.js';
 import { makeBalanceCommand } from './commands/balance.js';
 import { makeFaucetCommand } from './commands/faucet.js';
@@ -19,6 +20,7 @@ const program = new Command()
   .version(pkg.version);
 
 program.addCommand(makeA2ACommand());
+program.addCommand(makeRegistryCommand());
 program.addCommand(makeX402Command());
 program.addCommand(makeAuthCommand());
 program.addCommand(makeSiweCommand());

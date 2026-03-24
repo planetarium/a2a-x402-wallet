@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { searchAgents, type AgentSummary } from '../../registry-api.js';
+import { searchAgents, type AgentSummary } from '../../api/agent-registry.js';
 import { getRegistryUrl } from '../../store/config.js';
 
 export function makeSearchCommand(): Command {

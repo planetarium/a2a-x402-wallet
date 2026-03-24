@@ -3,9 +3,9 @@ name: a2a-wallet
 description: >
   Use the a2a-wallet CLI to interact with A2A agents — send messages, stream responses,
   and manage tasks. Also supports x402 payment signing and local wallet management.
-  Trigger when the user needs to: send a message to an A2A agent, sign an x402 payment,
-  manage local wallets, check their wallet address or balance,
-  or configure the a2a-wallet CLI.
+  Trigger when the user needs to: send a message to an A2A agent, search for or discover agents
+  in the registry, sign an x402 payment, manage local wallets, check their wallet address or
+  balance, or configure the a2a-wallet CLI.
 compatibility: >
   Requires a2a-wallet CLI to be installed. macOS (Apple Silicon, Intel),
   Linux (x64, arm64), Windows (x64). See INSTALL.md for setup instructions.
@@ -22,7 +22,8 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 
 | Command | Description |
 |---------|-------------|
-| `a2a` | A2A protocol client: `auth`, `list`, `disconnect`, `card`, `send`, `stream`, `tasks`, `cancel`, `search` |
+| `a2a` | A2A protocol client: `auth`, `list`, `disconnect`, `card`, `send`, `stream`, `tasks`, `cancel` |
+| `registry` | Agent registry: `search` (find agents), `register` (register an agent by agent card URL) |
 | `x402 sign` | Sign x402 PaymentRequirements → A2A message metadata (for paywalled agents) |
 | `wallet` | Manage local wallets: `create`, `import`, `list`, `use`, `export`, `connect`, `disconnect` |
 | `status` | Show default wallet address and web app URL |
@@ -30,6 +31,30 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 | `balance` | Show USDC balance for the active wallet on a given network |
 | `faucet` | Request testnet USDC (Base Sepolia) directly from the CLI — no browser or auth required |
 | `update` | Update the CLI binary |
+
+## Finding Agents
+
+Use the `registry search` command to discover A2A agents by keyword or capability:
+
+```bash
+a2a-wallet registry search <query>
+```
+
+Examples:
+```bash
+a2a-wallet registry search "image generation"
+a2a-wallet registry search translator
+a2a-wallet registry search --json weather   # machine-readable output
+```
+
+The registry returns matching agents with their name, description, and card URL. Use the card URL with `a2a card <url>` to inspect capabilities before interacting.
+
+To register a new agent in the registry:
+```bash
+a2a-wallet registry register <agent-card-url>
+```
+
+---
 
 ## Agent Card Extensions
 
