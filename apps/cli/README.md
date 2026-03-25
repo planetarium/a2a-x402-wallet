@@ -495,15 +495,17 @@ a2a-wallet a2a disconnect <url>
 
 ### `a2a card`
 
-Fetches and displays an agent's AgentCard from `/.well-known/agent.json`.
+Fetches and displays an agent's AgentCard.
 
 ```bash
-a2a-wallet a2a card <url> [--path <path>] [--json]
+a2a-wallet a2a card <url|agentCardUrl> [--path <path>] [--json]
 ```
+
+`<url|agentCardUrl>` accepts either an agent base URL or an agent card URL (e.g. `agentCardUrl` from `registry search`).
 
 | Option | Description |
 |--------|-------------|
-| `--path <path>` | Custom agent card path (default: `/.well-known/agent.json`) |
+| `--path <path>` | Custom agent card path — overrides the auto-detected path (default: `/.well-known/agent-card.json`) |
 | `--json` | Output raw JSON (single line) |
 
 ### `a2a send`
@@ -511,8 +513,10 @@ a2a-wallet a2a card <url> [--path <path>] [--json]
 Sends a message to an A2A agent and prints the full response.
 
 ```bash
-a2a-wallet a2a send <url> <message> [options]
+a2a-wallet a2a send <url|agentCardUrl> <message> [options]
 ```
+
+`<url|agentCardUrl>` accepts either an agent base URL or an agent card URL (e.g. `agentCardUrl` from `registry search`).
 
 | Option | Description |
 |--------|-------------|
@@ -529,8 +533,10 @@ a2a-wallet a2a send <url> <message> [options]
 Sends a message to an A2A agent and streams the response via SSE. Text parts are written to stdout as they arrive; other events (task, status-update, artifact-update) are printed as pretty JSON.
 
 ```bash
-a2a-wallet a2a stream <url> <message> [options]
+a2a-wallet a2a stream <url|agentCardUrl> <message> [options]
 ```
+
+`<url|agentCardUrl>` accepts either an agent base URL or an agent card URL (e.g. `agentCardUrl` from `registry search`).
 
 | Option | Description |
 |--------|-------------|
@@ -545,8 +551,10 @@ a2a-wallet a2a stream <url> <message> [options]
 Retrieves the current state of a task.
 
 ```bash
-a2a-wallet a2a tasks get <url> <taskId> [options]
+a2a-wallet a2a tasks get <url|agentCardUrl> <taskId> [options]
 ```
+
+`<url|agentCardUrl>` accepts either an agent base URL or an agent card URL (e.g. `agentCardUrl` from `registry search`).
 
 | Option | Description |
 |--------|-------------|
@@ -559,8 +567,10 @@ a2a-wallet a2a tasks get <url> <taskId> [options]
 Requests cancellation of a running task.
 
 ```bash
-a2a-wallet a2a cancel <url> <taskId> [options]
+a2a-wallet a2a cancel <url|agentCardUrl> <taskId> [options]
 ```
+
+`<url|agentCardUrl>` accepts either an agent base URL or an agent card URL (e.g. `agentCardUrl` from `registry search`).
 
 | Option | Description |
 |--------|-------------|
@@ -590,8 +600,8 @@ $ a2a-wallet registry search "usdc payment"
 
 name              description                                       agent_card_url
 ----------------  ------------------------------------------------  -------------------------------------------
-x402-pay-agent    Handles x402 micropayment flows automatically…    https://pay.example.com/.well-known/agent.json
-wallet-assistant  Signs and submits USDC transfers on Base…         https://wallet.agent.xyz/.well-known/agent.json
+x402-pay-agent    Handles x402 micropayment flows automatically…    https://pay.example.com/.well-known/agent-card.json
+wallet-assistant  Signs and submits USDC transfers on Base…         https://wallet.agent.xyz/.well-known/agent-card.json
 ```
 
 **Output example (`--json`):**
@@ -601,7 +611,7 @@ wallet-assistant  Signs and submits USDC transfers on Base…         https://wa
   {
     "name": "x402-pay-agent",
     "description": "Handles x402 micropayment flows automatically",
-    "agentCardUrl": "https://pay.example.com/.well-known/agent.json"
+    "agentCardUrl": "https://pay.example.com/.well-known/agent-card.json"
   }
 ]
 ```
@@ -629,7 +639,7 @@ a2a-wallet registry register <agent-card-url> [options]
 **Example:**
 
 ```
-$ a2a-wallet registry register https://my-agent.example.com/.well-known/agent.json
+$ a2a-wallet registry register https://my-agent.example.com/.well-known/agent-card.json
 Agent registered successfully.
 ```
 

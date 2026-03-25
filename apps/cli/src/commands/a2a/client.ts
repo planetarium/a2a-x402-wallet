@@ -4,6 +4,15 @@ import { ClientFactory, ClientFactoryOptions, JsonRpcTransportFactory, RestTrans
 const X402_EXTENSION_URI = 'https://github.com/google-agentic-commerce/a2a-x402/blob/main/spec/v0.2';
 
 /**
+ * Resolve createFromUrl args from a URL that may be either a base URL or a full agent card URL.
+ * If the URL ends with .json, treat it as the full card URL (path='').
+ * Otherwise, let the SDK append the default /.well-known/agent-card.json.
+ */
+export function resolveAgentCardArgs(url: string): [string, string | undefined] {
+  return url.endsWith('.json') ? [url, ''] : [url, undefined];
+}
+
+/**
  * Build a ClientFactory with an optional Bearer token injected into every request.
  * Always includes the X-A2A-Extensions header per the x402 spec (Section 8).
  */

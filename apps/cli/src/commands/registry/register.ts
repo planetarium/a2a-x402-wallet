@@ -5,7 +5,7 @@ import { getRegistryUrl } from '../../store/config.js';
 export function makeRegisterCommand(): Command {
   return new Command('register')
     .description('Register an A2A agent in the agent registry')
-    .argument('<agent-card-url>', 'URL to the agent card (/.well-known/agent.json)')
+    .argument('<agent-card-url>', 'URL to the agent card (/.well-known/agent-card.json)')
     .option('--registry <url>', 'agent-registry base URL')
     .option('--json', 'output raw JSON')
     .action(async (agentCardUrl: string, opts) => {

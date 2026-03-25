@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { randomUUID } from 'crypto';
-import { buildClientFactory, formatA2AError, bytesReplacer } from './client.js';
+import { buildClientFactory, formatA2AError, bytesReplacer, resolveAgentCardArgs } from './client.js';
 import { getConnection } from '../../store/config.js';
 import { readFileAsBytes, parseFileUri } from '../../lib/file.js';
 import { resolveSigner } from '../../wallet/signer.js';
@@ -10,7 +10,7 @@ import type { FilePart } from '@a2a-js/sdk';
 export function makeStreamCommand(): Command {
   return new Command('stream')
     .description("Send a text message and stream the agent's response in real time via SSE.\nText parts are written to stdout as they arrive; other events are printed as JSON.")
-    .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
+    .argument('<url|agentCardUrl>', 'Agent base URL or agent card URL (e.g. from registry search)')
     .argument('<message>', 'Text message to send')
     .option('--context-id <id>', 'Continue an existing conversation context')
     .option('--bearer <token>', 'Bearer token for agent authentication')
@@ -50,7 +50,7 @@ export function makeStreamCommand(): Command {
       };
 
       try {
-        const client = await factory.createFromUrl(url);
+        const client = await factory.createFromUrl(...resolveAgentCardArgs(url));
         const stream = client.sendMessageStream({
           message: {
             kind: 'message',
