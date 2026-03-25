@@ -89,7 +89,16 @@ Agents declaring this extension monetize their services via on-chain cryptocurre
 }
 ```
 
-**Payment flow**:
+**Payment flow (automatic)**:
+
+Use `--allow-x402` with `send` or `stream` to handle the entire flow automatically — the CLI detects the payment request, signs it, and resubmits without any extra steps:
+
+```bash
+a2a-wallet a2a send --allow-x402 https://my-agent.example.com "Hello"
+a2a-wallet a2a stream --allow-x402 https://my-agent.example.com "Hello"
+```
+
+**Payment flow (manual)**:
 1. Send a message → agent replies with `task.status = input-required` and `metadata["x402.payment.status"] = "payment-required"` plus `metadata["x402.payment.required"]` containing `PaymentRequirements`
 2. Sign the requirements with `x402 sign`:
    ```bash
@@ -195,4 +204,5 @@ a2a-wallet wallet use --custodial   # set custodial as the default
 - Override token/URL per-call with `--token` / `--url`, or set `A2A_WALLET_TOKEN` env var
 - Always run `a2a card <url>` first to check which extensions are required before sending messages
 - Use `--file <path|uri>` with `send` or `stream` to attach files (repeatable). Local path → base64-embedded; `http(s)://` URI → referenced by URL
+- Use `--allow-x402` with `send` or `stream` to automatically handle x402 payment requests without manual signing steps
 - Use `a2a-wallet --help` or `a2a-wallet <command> --help` to discover options at any time

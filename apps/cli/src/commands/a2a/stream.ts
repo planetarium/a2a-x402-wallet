@@ -3,6 +3,8 @@ import { randomUUID } from 'crypto';
 import { buildClientFactory, formatA2AError, bytesReplacer } from './client.js';
 import { getConnection } from '../../store/config.js';
 import { readFileAsBytes, parseFileUri } from '../../lib/file.js';
+import { resolveSigner } from '../../wallet/signer.js';
+import { getX402PaymentInfo } from './x402-handler.js';
 import type { FilePart } from '@a2a-js/sdk';
 
 export function makeStreamCommand(): Command {
@@ -13,8 +15,9 @@ export function makeStreamCommand(): Command {
     .option('--context-id <id>', 'Continue an existing conversation context')
     .option('--bearer <token>', 'Bearer token for agent authentication')
     .option('--file <path|uri>', 'Attach a file to the message (repeatable)', (v: string, acc: string[]) => [...acc, v], [] as string[])
+    .option('--allow-x402', 'Automatically sign and submit x402 payment if the agent responds with a payment-required request')
     .option('--json', 'Output each event as raw JSON (one line per event)')
-    .action(async (url: string, message: string, opts: { contextId?: string; bearer?: string; file: string[]; json?: boolean }) => {
+    .action(async (url: string, message: string, opts: { contextId?: string; bearer?: string; file: string[]; allowX402?: boolean; json?: boolean }) => {
       const bearer = opts.bearer ?? getConnection(url)?.apiKey;
       const factory = buildClientFactory(bearer);
 
@@ -32,6 +35,20 @@ export function makeStreamCommand(): Command {
         }
       }
 
+      const printEvent = (event: unknown) => {
+        if (opts.json) {
+          console.log(JSON.stringify(event, bytesReplacer));
+        } else if (event && typeof event === 'object' && (event as Record<string, unknown>)['kind'] === 'message') {
+          const msg = event as { parts: Array<{ kind: string; text?: string }> };
+          for (const part of msg.parts) {
+            if (part.kind === 'text' && part.text) process.stdout.write(part.text);
+          }
+        } else {
+          // task, status-update, artifact-update 이벤트
+          console.log(JSON.stringify(event, bytesReplacer, 2));
+        }
+      };
+
       try {
         const client = await factory.createFromUrl(url);
         const stream = client.sendMessageStream({
@@ -44,17 +61,38 @@ export function makeStreamCommand(): Command {
           },
         });
 
+        let x402Handled = false;
         for await (const event of stream) {
-          if (opts.json) {
-            console.log(JSON.stringify(event, bytesReplacer));
-          } else if (event.kind === 'message') {
-            for (const part of event.parts) {
-              if (part.kind === 'text') process.stdout.write(part.text);
+          if (opts.allowX402 && !x402Handled) {
+            const paymentInfo = getX402PaymentInfo(event);
+            if (paymentInfo) {
+              x402Handled = true;
+              printEvent(event);
+              console.error('[x402] Payment required. Signing and submitting...');
+              const signer = await resolveSigner();
+              const payload = await signer.signX402Payment(paymentInfo.requirements);
+              console.error('[x402] Payment submitted.');
+              const paymentStream = client.sendMessageStream({
+                message: {
+                  kind: 'message',
+                  messageId: randomUUID(),
+                  role: 'user',
+                  parts: [{ kind: 'text', text: message }],
+                  taskId: paymentInfo.taskId,
+                  ...(paymentInfo.contextId ? { contextId: paymentInfo.contextId } : {}),
+                  metadata: {
+                    'x402.payment.status': 'payment-submitted',
+                    'x402.payment.payload': payload,
+                  },
+                },
+              });
+              for await (const paymentEvent of paymentStream) {
+                printEvent(paymentEvent);
+              }
+              break;
             }
-          } else {
-            // task, status-update, artifact-update 이벤트
-            console.log(JSON.stringify(event, bytesReplacer, 2));
           }
+          printEvent(event);
         }
 
         if (!opts.json) process.stdout.write('\n');

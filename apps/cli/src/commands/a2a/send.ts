@@ -3,6 +3,8 @@ import { randomUUID } from 'crypto';
 import { buildClientFactory, formatA2AError, bytesReplacer } from './client.js';
 import { getConnection } from '../../store/config.js';
 import { readFileAsBytes, parseFileUri } from '../../lib/file.js';
+import { resolveSigner } from '../../wallet/signer.js';
+import { getX402PaymentInfo } from './x402-handler.js';
 import type { FilePart } from '@a2a-js/sdk';
 
 
@@ -16,8 +18,9 @@ export function makeSendCommand(): Command {
     .option('--metadata <json>', 'JSON metadata to attach to the message (e.g. x402 payment payload)')
     .option('--bearer <token>', 'Bearer token for agent authentication')
     .option('--file <path|uri>', 'Attach a file to the message (repeatable)', (v: string, acc: string[]) => [...acc, v], [] as string[])
+    .option('--allow-x402', 'Automatically sign and submit x402 payment if the agent responds with a payment-required request')
     .option('--json', 'Output raw JSON (single line)')
-    .action(async (url: string, message: string, opts: { contextId?: string; taskId?: string; metadata?: string; bearer?: string; file: string[]; json?: boolean }) => {
+    .action(async (url: string, message: string, opts: { contextId?: string; taskId?: string; metadata?: string; bearer?: string; file: string[]; allowX402?: boolean; json?: boolean }) => {
       const bearer = opts.bearer ?? getConnection(url)?.apiKey;
       const factory = buildClientFactory(bearer);
 
@@ -47,7 +50,7 @@ export function makeSendCommand(): Command {
 
       try {
         const client = await factory.createFromUrl(url);
-        const response = await client.sendMessage({
+        let response = await client.sendMessage({
           message: {
             kind: 'message',
             messageId: randomUUID(),
@@ -58,6 +61,30 @@ export function makeSendCommand(): Command {
             ...(parsedMetadata ? { metadata: parsedMetadata } : {}),
           },
         });
+
+        if (opts.allowX402) {
+          const paymentInfo = getX402PaymentInfo(response);
+          if (paymentInfo) {
+            console.error('[x402] Payment required. Signing and submitting...');
+            const signer = await resolveSigner();
+            const payload = await signer.signX402Payment(paymentInfo.requirements);
+            response = await client.sendMessage({
+              message: {
+                kind: 'message',
+                messageId: randomUUID(),
+                role: 'user',
+                parts: [{ kind: 'text', text: message }, ...fileParts],
+                taskId: paymentInfo.taskId,
+                ...(paymentInfo.contextId ? { contextId: paymentInfo.contextId } : {}),
+                metadata: {
+                  'x402.payment.status': 'payment-submitted',
+                  'x402.payment.payload': payload,
+                },
+              },
+            });
+            console.error('[x402] Payment submitted.');
+          }
+        }
 
         if (opts.json) {
           console.log(JSON.stringify(response, bytesReplacer));
