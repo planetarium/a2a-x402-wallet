@@ -1,11 +1,11 @@
 import { Command } from 'commander';
-import { buildClientFactory, formatA2AError } from './client.js';
+import { buildClientFactory, formatA2AError, resolveAgentCardArgs } from './client.js';
 import { getConnection } from '../../store/config.js';
 
 function makeTasksGetCommand(): Command {
   return new Command('get')
     .description('Fetch the current state and message history of a task by ID.\nUseful for checking the result of a previous send or monitoring an in-progress task.')
-    .argument('<url>', 'Agent base URL (e.g. https://my-agent.example.com)')
+    .argument('<url|agentCardUrl>', 'Agent base URL or agent card URL (e.g. from registry search)')
     .argument('<taskId>', 'Task ID to retrieve')
     .option('--history <n>', 'Include last N messages from task history', '0')
     .option('--bearer <token>', 'Bearer token for agent authentication')
@@ -14,7 +14,7 @@ function makeTasksGetCommand(): Command {
       const bearer = opts.bearer ?? getConnection(url)?.apiKey;
       const factory = buildClientFactory(bearer);
       try {
-        const client = await factory.createFromUrl(url);
+        const client = await factory.createFromUrl(...resolveAgentCardArgs(url));
         const task = await client.getTask({
           id: taskId,
           historyLength: parseInt(opts.history, 10),

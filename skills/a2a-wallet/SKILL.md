@@ -36,18 +36,20 @@ If a command fails with a "command not found" error, refer to **[INSTALL.md](./I
 
 Use the `registry search` command to discover A2A agents by keyword or capability:
 
-```bash
-a2a-wallet registry search <query>
-```
-
 Examples:
 ```bash
-a2a-wallet registry search "image generation"
-a2a-wallet registry search translator
-a2a-wallet registry search --json weather   # machine-readable output
+a2a-wallet registry search --json "image generation"
 ```
 
-The registry returns matching agents with their name, description, and card URL. Use the card URL with `a2a card <url>` to inspect capabilities before interacting.
+The registry returns matching agents with their name, description, and `agentCardUrl`. You can pass the `agentCardUrl` directly to any agent command — no need to strip the path:
+
+```bash
+# Inspect before interacting
+a2a-wallet a2a card https://my-agent.example.com/.well-known/agent-card.json
+
+# Send a message using the agentCardUrl from registry search
+a2a-wallet a2a send https://my-agent.example.com/.well-known/agent-card.json "Hello"
+```
 
 To register a new agent in the registry:
 ```bash
@@ -56,12 +58,39 @@ a2a-wallet registry register <agent-card-url>
 
 ---
 
+## Sending Messages
+
+```bash
+a2a-wallet a2a send <url|agentCardUrl> "message"     # wait for full response
+a2a-wallet a2a stream <url|agentCardUrl> "message"   # stream response via SSE
+```
+
+`<url|agentCardUrl>` accepts either an agent base URL or an agent card URL (e.g. `agentCardUrl` from `registry search`).
+
+**Options** (`send` and `stream` unless noted):
+
+| Option | Description |
+|--------|-------------|
+| `--context-id <id>` | Continue an existing conversation context (omit to start a new one) |
+| `--task-id <id>` | Target a specific task — required when resuming a paused task or submitting x402 payment (`send` only) |
+| `--metadata <json>` | JSON metadata to attach (e.g. x402 payment payload) (`send` only) |
+| `--file <path\|uri>` | Attach a file; repeatable. Local path → base64-embedded, `http(s)://` → URL reference |
+| `--bearer <token>` | Bearer token for agent authentication |
+| `--allow-x402` | Auto-sign and resubmit if agent responds with payment-required |
+| `--json` | Machine-readable output |
+
+---
+
 ## Agent Card Extensions
 
 Before interacting with an A2A agent, inspect its card to check which extensions are declared:
 
 ```bash
+# Base URL — appends /.well-known/agent-card.json automatically
 a2a-wallet a2a card https://my-agent.example.com
+
+# Full agent card URL (e.g. from registry search) — used as-is
+a2a-wallet a2a card https://my-agent.example.com/.well-known/agent-card.json
 ```
 
 The `capabilities.extensions` array in the card lists supported (and possibly required) extensions. The following extension is relevant to this CLI:
@@ -89,7 +118,16 @@ Agents declaring this extension monetize their services via on-chain cryptocurre
 }
 ```
 
-**Payment flow**:
+**Payment flow (automatic)**:
+
+Use `--allow-x402` with `send` or `stream` to handle the entire flow automatically — the CLI detects the payment request, signs it, and resubmits without any extra steps:
+
+```bash
+a2a-wallet a2a send --allow-x402 https://my-agent.example.com "Hello"
+a2a-wallet a2a stream --allow-x402 https://my-agent.example.com "Hello"
+```
+
+**Payment flow (manual)**:
 1. Send a message → agent replies with `task.status = input-required` and `metadata["x402.payment.status"] = "payment-required"` plus `metadata["x402.payment.required"]` containing `PaymentRequirements`
 2. Sign the requirements with `x402 sign`:
    ```bash
@@ -125,14 +163,7 @@ The local wallet stores the private key as a **plain file on disk** (`~/.a2a-wal
 - **Do NOT import or restore a wallet that holds significant assets** into this CLI.
 - If the key file is read by any unauthorized process or leaks for any reason, **all assets are permanently unrecoverable**. The user bears full responsibility.
 
-### Custodial Wallet Risk
-
-The custodial wallet delegates key management to [Privy](https://privy.io) and the a2a-wallet web service. **This project cannot guarantee custodial wallet security.**
-
-- **Do NOT store significant amounts of assets** in the custodial wallet.
-- Key management is outside the user's direct control. The user bears full responsibility for any loss due to third-party service incidents or misconfigurations.
-
-**Both wallet types are intended for small micro-payments only. Always inform the user of these risks and confirm they accept responsibility before proceeding.**
+**Local wallets are intended for small micro-payments only. Always inform the user of these risks and confirm they accept responsibility before proceeding.**
 
 ### Legal Notice
 
@@ -152,16 +183,12 @@ When setting up a wallet, confirm the user understands and accepts the following
 
 ## Wallet selection
 
-The CLI supports two wallet types:
-
-- **Local wallet** — private key stored locally (`wallet create` / `wallet import`). No login required. **Key is stored as a plain file — use only for small amounts.**
-- **Custodial wallet** — signing delegated to the web service. Requires login via `wallet connect`. **Security depends on a third-party provider — use only for small amounts.**
+The CLI uses **local wallets** — private key stored locally (`wallet create` / `wallet import`). No login required. **Key is stored as a plain file — use only for small amounts.**
 
 Switch the active wallet with:
 
 ```bash
-a2a-wallet wallet use <name>       # set a local wallet as default
-a2a-wallet wallet use --custodial  # switch to the custodial wallet
+a2a-wallet wallet use <name>   # set a local wallet as default
 ```
 
 Check current status at any time:
@@ -170,29 +197,8 @@ Check current status at any time:
 a2a-wallet status
 ```
 
-### Custodial wallet login
-
-```bash
-a2a-wallet wallet connect           # opens browser for login
-a2a-wallet wallet connect --poll <device-code>  # complete login (headless)
-```
-
-### Note for users upgrading from v0.3.3 or earlier
-
-In v0.3.3 and below, the wallet was always managed by the web service (custodial). If you want to continue using that same wallet address after upgrading, you must activate the custodial wallet:
-
-```bash
-a2a-wallet wallet connect           # log in to the web service
-a2a-wallet wallet use --custodial   # set custodial as the default
-```
-
-> **Recommendation**: consider migrating to a local wallet. Local wallets sign entirely offline with no dependency on the web service. To switch, run `wallet create` and use the new address going forward.
-
 ## Agent usage tips
 
 - Use `--json` for machine-readable output
 - Errors → stderr, exit `0` = success, `1` = failure
-- Override token/URL per-call with `--token` / `--url`, or set `A2A_WALLET_TOKEN` env var
-- Always run `a2a card <url>` first to check which extensions are required before sending messages
-- Use `--file <path|uri>` with `send` or `stream` to attach files (repeatable). Local path → base64-embedded; `http(s)://` URI → referenced by URL
 - Use `a2a-wallet --help` or `a2a-wallet <command> --help` to discover options at any time
