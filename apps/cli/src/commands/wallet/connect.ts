@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { getEffectiveConfig, readConfig, writeConfig, setDefaultWallet } from '../../store/config.js';
 import { tryOpenBrowser } from '../../lib/utils.js';
 import { logTokenSaved, POLL_INTERVAL_MS, TIMEOUT_MS } from '../auth.js';
+import { discoverDeviceEndpoints } from '../../lib/oauth-discovery.js';
 
 export function makeWalletConnectCommand(): Command {
   return new Command('connect')
@@ -12,6 +13,7 @@ export function makeWalletConnectCommand(): Command {
     .action(async (opts: { poll?: string; url?: string; json?: boolean }) => {
       const cfg = getEffectiveConfig({ url: opts.url });
       const baseUrl = cfg.url;
+      const endpoints = await discoverDeviceEndpoints(baseUrl);
 
       // ── Step 2: poll ───────────────────────────────────────────────────────
       if (opts.poll) {
@@ -21,7 +23,7 @@ export function makeWalletConnectCommand(): Command {
         let intervalMs = POLL_INTERVAL_MS;
 
         while (Date.now() < deadline) {
-          const pollRes = await fetch(`${baseUrl}/api/device/token`, {
+          const pollRes = await fetch(endpoints.tokenEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -82,7 +84,7 @@ export function makeWalletConnectCommand(): Command {
       }
 
       // ── Step 1: start ──────────────────────────────────────────────────────
-      const startRes = await fetch(`${baseUrl}/api/device/authorize`, { method: 'POST' })
+      const startRes = await fetch(endpoints.deviceAuthorizationEndpoint, { method: 'POST' })
         .catch(() => null);
       if (!startRes) {
         console.error('Error: Could not reach the server. Check your network or --url.');

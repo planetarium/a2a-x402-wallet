@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { getEffectiveConfig, readConfig, writeConfig } from '../store/config.js';
 import { tryOpenBrowser } from '../lib/utils.js';
+import { discoverDeviceEndpoints } from '../lib/oauth-discovery.js';
 
 export function logTokenSaved(token: string): void {
   console.log('Token saved. You are now logged in.');
@@ -63,8 +64,9 @@ export function makeAuthCommand(): Command {
     .action(async (opts: { url?: string; json?: boolean }) => {
       const cfg = getEffectiveConfig({ url: opts.url });
       const baseUrl = cfg.url;
+      const endpoints = await discoverDeviceEndpoints(baseUrl);
 
-      const res = await fetch(`${baseUrl}/api/device/authorize`, { method: 'POST' })
+      const res = await fetch(endpoints.deviceAuthorizationEndpoint, { method: 'POST' })
         .catch(() => null);
       if (!res) {
         console.error('Error: Could not reach the server. Check your network or --url.');
@@ -122,6 +124,7 @@ export function makeAuthCommand(): Command {
 
       const cfg = getEffectiveConfig({ url: opts.url });
       const baseUrl = cfg.url;
+      const endpoints = await discoverDeviceEndpoints(baseUrl);
 
       // ── RFC 8628 flow (--device-code) ──────────────────────────────────────
       if (opts.deviceCode) {
@@ -131,7 +134,7 @@ export function makeAuthCommand(): Command {
         let intervalMs = POLL_INTERVAL_MS;
 
         while (Date.now() < deadline) {
-          const pollRes = await fetch(`${baseUrl}/api/device/token`, {
+          const pollRes = await fetch(endpoints.tokenEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
