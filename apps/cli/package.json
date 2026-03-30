@@ -11,7 +11,8 @@
     "build": "tsc",
     "build:binary": "bun build src/index.ts --compile --outfile dist/a2a-wallet",
     "start": "node dist/index.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=22"
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@types/node": "^22",
     "tsx": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }
